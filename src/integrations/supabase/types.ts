@@ -14,7 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contracts: {
+        Row: {
+          contract_content: string | null
+          created_at: string
+          employer_id: string
+          employer_name: string
+          employer_signature: string | null
+          hourly_wage: number
+          id: string
+          job_description: string | null
+          signed_at: string | null
+          start_date: string
+          status: string
+          updated_at: string
+          work_days: string[]
+          work_end_time: string
+          work_location: string
+          work_start_time: string
+          worker_id: string | null
+          worker_name: string
+          worker_signature: string | null
+        }
+        Insert: {
+          contract_content?: string | null
+          created_at?: string
+          employer_id: string
+          employer_name: string
+          employer_signature?: string | null
+          hourly_wage: number
+          id?: string
+          job_description?: string | null
+          signed_at?: string | null
+          start_date: string
+          status?: string
+          updated_at?: string
+          work_days?: string[]
+          work_end_time: string
+          work_location: string
+          work_start_time: string
+          worker_id?: string | null
+          worker_name: string
+          worker_signature?: string | null
+        }
+        Update: {
+          contract_content?: string | null
+          created_at?: string
+          employer_id?: string
+          employer_name?: string
+          employer_signature?: string | null
+          hourly_wage?: number
+          id?: string
+          job_description?: string | null
+          signed_at?: string | null
+          start_date?: string
+          status?: string
+          updated_at?: string
+          work_days?: string[]
+          work_end_time?: string
+          work_location?: string
+          work_start_time?: string
+          worker_id?: string | null
+          worker_name?: string
+          worker_signature?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
