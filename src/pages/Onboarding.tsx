@@ -1,16 +1,31 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useAppStore } from "@/lib/store";
 import { FileText, Sparkles, Shield } from "lucide-react";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { user, signInWithGoogle, isLoading } = useAuth();
   const { setIsDemo } = useAppStore();
 
-  const handleGoogleLogin = () => {
-    // TODO: Implement Google OAuth
-    navigate("/select-role");
+  // If already logged in, redirect to role selection
+  useEffect(() => {
+    if (user && !isLoading) {
+      navigate("/select-role");
+    }
+  }, [user, isLoading, navigate]);
+
+  const handleGoogleLogin = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("로그인에 실패했습니다. 다시 시도해주세요.");
+    }
   };
 
   const handleDemo = () => {
@@ -35,6 +50,18 @@ export default function Onboarding() {
       description: "링크 공유로 바로 서명",
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          className="w-12 h-12 rounded-full border-2 border-muted border-t-primary"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

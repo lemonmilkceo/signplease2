@@ -1,19 +1,98 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useAppStore } from "@/lib/store";
-import { Plus, FileText, Clock, CheckCircle2, ChevronRight } from "lucide-react";
+import { Plus, FileText, Clock, CheckCircle2, ChevronRight, LogOut } from "lucide-react";
 import { CardSlide } from "@/components/ui/card-slide";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { getEmployerContracts, Contract } from "@/lib/contract-api";
+import { toast } from "sonner";
 
 export default function EmployerDashboard() {
   const navigate = useNavigate();
-  const { contracts, user } = useAppStore();
+  const { user, profile, signOut, isLoading: authLoading } = useAuth();
+  const { isDemo, contracts: demoContracts, user: demoUser } = useAppStore();
+  
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const pendingContracts = contracts.filter((c) => c.status === 'pending');
-  const completedContracts = contracts.filter((c) => c.status === 'completed');
+  useEffect(() => {
+    const fetchContracts = async () => {
+      if (isDemo) {
+        setIsLoading(false);
+        return;
+      }
+
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const data = await getEmployerContracts(user.id);
+        setContracts(data);
+      } catch (error) {
+        console.error("Error fetching contracts:", error);
+        toast.error("계약서 목록을 불러오는데 실패했습니다.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (!authLoading) {
+      fetchContracts();
+    }
+  }, [user, isDemo, authLoading]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      toast.error("로그아웃에 실패했습니다.");
+    }
+  };
+
+  // Use demo contracts in demo mode, real contracts otherwise
+  const displayContracts = isDemo 
+    ? demoContracts.map(c => ({
+        id: c.id!,
+        employer_id: 'demo',
+        worker_id: null,
+        employer_name: c.employerName,
+        worker_name: c.workerName,
+        hourly_wage: c.hourlyWage,
+        start_date: c.startDate,
+        work_days: c.workDays,
+        work_start_time: c.workStartTime,
+        work_end_time: c.workEndTime,
+        work_location: c.workLocation,
+        job_description: c.jobDescription || null,
+        status: c.status as 'draft' | 'pending' | 'signed' | 'completed',
+        employer_signature: c.employerSignature || null,
+        worker_signature: c.workerSignature || null,
+        contract_content: null,
+        created_at: c.createdAt!,
+        updated_at: c.createdAt!,
+        signed_at: null,
+      }))
+    : contracts;
+
+  const pendingContracts = displayContracts.filter((c) => c.status === 'pending' || c.status === 'draft');
+  const completedContracts = displayContracts.filter((c) => c.status === 'completed');
+
+  const displayName = isDemo ? demoUser?.name : profile?.name;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'draft':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+            임시저장
+          </span>
+        );
       case 'pending':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning">
@@ -33,19 +112,36 @@ export default function EmployerDashboard() {
     }
   };
 
+  if (isLoading || authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoadingSpinner text="로딩 중..." />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="px-6 pt-12 pb-6">
+      <div className="px-6 pt-12 pb-6 flex items-start justify-between">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <p className="text-body text-muted-foreground mb-1">안녕하세요,</p>
           <h1 className="text-title text-foreground">
-            {user?.name || '사장님'} 👋
+            {displayName || '사장님'} 👋
           </h1>
         </motion.div>
+
+        {!isDemo && user && (
+          <button
+            onClick={handleSignOut}
+            className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Quick Action */}
@@ -76,7 +172,7 @@ export default function EmployerDashboard() {
             transition={{ delay: 0.2 }}
           >
             <h2 className="text-heading font-semibold text-foreground mb-4">
-              서명 대기 중
+              진행 중
             </h2>
             <div className="space-y-3">
               {pendingContracts.map((contract, index) => (
@@ -96,10 +192,10 @@ export default function EmployerDashboard() {
                       </div>
                       <div>
                         <p className="text-body font-semibold text-foreground">
-                          {contract.workerName}
+                          {contract.worker_name}
                         </p>
                         <p className="text-caption text-muted-foreground">
-                          시급 {contract.hourlyWage.toLocaleString()}원
+                          시급 {contract.hourly_wage.toLocaleString()}원
                         </p>
                       </div>
                     </div>
@@ -144,10 +240,10 @@ export default function EmployerDashboard() {
                       </div>
                       <div>
                         <p className="text-body font-semibold text-foreground">
-                          {contract.workerName}
+                          {contract.worker_name}
                         </p>
                         <p className="text-caption text-muted-foreground">
-                          {contract.startDate} 시작
+                          {contract.start_date} 시작
                         </p>
                       </div>
                     </div>
@@ -164,7 +260,7 @@ export default function EmployerDashboard() {
       )}
 
       {/* Empty State */}
-      {contracts.length === 0 && (
+      {displayContracts.length === 0 && (
         <motion.div
           className="px-6 py-12 text-center"
           initial={{ opacity: 0 }}

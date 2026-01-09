@@ -1,1 +1,7 @@
 project_id = "totgojawcrbdbwjcnhcr"
+
+[functions.generate-contract]
+verify_jwt = false
+
+[functions.explain-term]
+verify_jwt = false

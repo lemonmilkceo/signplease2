@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useAppStore } from "@/lib/store";
 import { ContractCard } from "@/components/ui/card-slide";
 import { SignatureCanvas } from "@/components/ui/signature-canvas";
+import { LoadingSpinner } from "@/components/ui/loading";
 import {
   ArrowLeft,
   Calendar,
@@ -16,38 +18,95 @@ import {
   Check,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getContract, signContractAsEmployer, Contract } from "@/lib/contract-api";
 
 export default function ContractPreview() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { contracts, updateContract } = useAppStore();
+  const { user } = useAuth();
+  const { isDemo, contracts: demoContracts, updateContract: updateDemoContract } = useAppStore();
+  
+  const [contract, setContract] = useState<Contract | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSignatureOpen, setIsSignatureOpen] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
 
-  const contract = contracts.find((c) => c.id === id);
+  useEffect(() => {
+    const fetchContract = async () => {
+      if (isDemo) {
+        // Demo mode - use local state
+        const demoContract = demoContracts.find((c) => c.id === id);
+        if (demoContract) {
+          setContract({
+            id: demoContract.id!,
+            employer_id: 'demo',
+            worker_id: null,
+            employer_name: demoContract.employerName,
+            worker_name: demoContract.workerName,
+            hourly_wage: demoContract.hourlyWage,
+            start_date: demoContract.startDate,
+            work_days: demoContract.workDays,
+            work_start_time: demoContract.workStartTime,
+            work_end_time: demoContract.workEndTime,
+            work_location: demoContract.workLocation,
+            job_description: demoContract.jobDescription || null,
+            status: demoContract.status,
+            employer_signature: demoContract.employerSignature || null,
+            worker_signature: demoContract.workerSignature || null,
+            contract_content: null,
+            created_at: demoContract.createdAt!,
+            updated_at: demoContract.createdAt!,
+            signed_at: null,
+          });
+          setIsSigned(!!demoContract.employerSignature);
+        }
+        setIsLoading(false);
+      } else if (id) {
+        // Real mode - fetch from database
+        try {
+          const data = await getContract(id);
+          setContract(data);
+          setIsSigned(!!data?.employer_signature);
+        } catch (error) {
+          console.error("Error fetching contract:", error);
+          toast.error("계약서를 불러오는데 실패했습니다.");
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
 
-  if (!contract) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">계약서를 찾을 수 없습니다</p>
-      </div>
-    );
-  }
+    fetchContract();
+  }, [id, isDemo, demoContracts]);
 
-  const handleSign = (signatureData: string) => {
-    updateContract(contract.id!, { employerSignature: signatureData, status: 'pending' });
-    setIsSigned(true);
-    toast.success("서명이 완료되었습니다!");
+  const handleSign = async (signatureData: string) => {
+    if (!contract) return;
+
+    try {
+      if (isDemo) {
+        updateDemoContract(contract.id, { employerSignature: signatureData, status: 'pending' });
+      } else {
+        await signContractAsEmployer(contract.id, signatureData);
+        setContract((prev) => prev ? { ...prev, employer_signature: signatureData, status: 'pending' } : null);
+      }
+      setIsSigned(true);
+      toast.success("서명이 완료되었습니다!");
+    } catch (error) {
+      console.error("Error signing contract:", error);
+      toast.error("서명에 실패했습니다.");
+    }
   };
 
   const handleShare = async () => {
+    if (!contract) return;
+    
     const shareUrl = `${window.location.origin}/worker/contract/${contract.id}`;
     
     if (navigator.share) {
       try {
         await navigator.share({
           title: '근로계약서',
-          text: `${contract.workerName}님, 근로계약서가 도착했습니다.`,
+          text: `${contract.worker_name}님, 근로계약서가 도착했습니다.`,
           url: shareUrl,
         });
       } catch (err) {
@@ -62,6 +121,22 @@ export default function ContractPreview() {
     navigator.clipboard.writeText(text);
     toast.success("링크가 복사되었습니다!");
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <LoadingSpinner text="계약서를 불러오는 중..." />
+      </div>
+    );
+  }
+
+  if (!contract) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">계약서를 찾을 수 없습니다</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,7 +162,7 @@ export default function ContractPreview() {
         >
           <ContractCard
             title="근로자"
-            value={contract.workerName}
+            value={contract.worker_name}
             icon={<User className="w-6 h-6" />}
             highlight
           />
@@ -100,7 +175,7 @@ export default function ContractPreview() {
         >
           <ContractCard
             title="시급"
-            value={`${contract.hourlyWage.toLocaleString()}원`}
+            value={`${contract.hourly_wage.toLocaleString()}원`}
             icon={<Wallet className="w-6 h-6" />}
           />
         </motion.div>
@@ -112,7 +187,7 @@ export default function ContractPreview() {
         >
           <ContractCard
             title="근무 시작일"
-            value={contract.startDate}
+            value={contract.start_date}
             icon={<Calendar className="w-6 h-6" />}
           />
         </motion.div>
@@ -124,7 +199,7 @@ export default function ContractPreview() {
         >
           <ContractCard
             title="근무 시간"
-            value={`${contract.workStartTime} - ${contract.workEndTime} (${contract.workDays.join(', ')})`}
+            value={`${contract.work_start_time} - ${contract.work_end_time} (${contract.work_days.join(', ')})`}
             icon={<Clock className="w-6 h-6" />}
           />
         </motion.div>
@@ -136,7 +211,7 @@ export default function ContractPreview() {
         >
           <ContractCard
             title="근무 장소"
-            value={contract.workLocation}
+            value={contract.work_location}
             icon={<MapPin className="w-6 h-6" />}
           />
         </motion.div>

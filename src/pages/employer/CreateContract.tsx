@@ -1,28 +1,38 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useAppStore } from "@/lib/store";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { StepContainer, StepQuestion } from "@/components/ui/step-container";
 import { AIGenerating } from "@/components/ui/loading";
 import { ArrowLeft, Calendar, Clock } from "lucide-react";
-import { WORK_DAYS, MINIMUM_WAGE_2025, ContractData } from "@/lib/contract-types";
+import { WORK_DAYS, MINIMUM_WAGE_2025 } from "@/lib/contract-types";
+import { generateContractContent, createContract, ContractInput } from "@/lib/contract-api";
+import { toast } from "sonner";
 
 const TOTAL_STEPS = 6;
 
 export default function CreateContract() {
   const navigate = useNavigate();
-  const { contractForm, setContractForm, addContract, user } = useAppStore();
+  const { user, profile, isLoading: authLoading } = useAuth();
+  const { isDemo, contractForm, setContractForm, addContract } = useAppStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user && !isDemo) {
+      navigate('/');
+    }
+  }, [user, isDemo, authLoading, navigate]);
 
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
     } else {
-      generateContract();
+      handleGenerateContract();
     }
   };
 
@@ -34,15 +44,11 @@ export default function CreateContract() {
     }
   };
 
-  const generateContract = async () => {
+  const handleGenerateContract = async () => {
     setIsGenerating(true);
-    
-    // Simulate AI generation
-    await new Promise((resolve) => setTimeout(resolve, 2500));
-    
-    const newContract: ContractData = {
-      id: Date.now().toString(),
-      employerName: user?.name || '사장님',
+
+    const contractData: ContractInput = {
+      employerName: profile?.name || '사장님',
       workerName: contractForm.workerName || '',
       hourlyWage: contractForm.hourlyWage || MINIMUM_WAGE_2025,
       startDate: contractForm.startDate || new Date().toISOString().split('T')[0],
@@ -50,14 +56,35 @@ export default function CreateContract() {
       workStartTime: contractForm.workStartTime || '09:00',
       workEndTime: contractForm.workEndTime || '18:00',
       workLocation: contractForm.workLocation || '',
-      jobDescription: contractForm.jobDescription || '',
-      status: 'draft',
-      createdAt: new Date().toISOString().split('T')[0],
+      jobDescription: contractForm.jobDescription,
     };
 
-    addContract(newContract);
-    setIsGenerating(false);
-    navigate(`/employer/preview/${newContract.id}`);
+    try {
+      if (isDemo) {
+        // Demo mode - simulate AI generation
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        
+        const mockContract = {
+          id: Date.now().toString(),
+          ...contractData,
+          status: 'draft' as const,
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+
+        addContract(mockContract);
+        navigate(`/employer/preview/${mockContract.id}`);
+      } else if (user) {
+        // Real mode - use AI and database
+        const contractContent = await generateContractContent(contractData);
+        const newContract = await createContract(contractData, contractContent, user.id);
+        navigate(`/employer/preview/${newContract.id}`);
+      }
+    } catch (error) {
+      console.error("Contract generation error:", error);
+      toast.error("계약서 생성에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const isStepValid = () => {

@@ -1,21 +1,33 @@
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { useAppStore } from "@/lib/store";
 import { Building2, User } from "lucide-react";
+import { toast } from "sonner";
 
 export default function SelectRole() {
   const navigate = useNavigate();
-  const { setUser, isDemo } = useAppStore();
+  const { user, profile, updateProfile, isLoading } = useAuth();
+  const { isDemo, setUser: setDemoUser } = useAppStore();
 
-  const handleSelectRole = (role: 'employer' | 'worker') => {
+  const handleSelectRole = async (role: 'employer' | 'worker') => {
     if (isDemo) {
-      setUser({
+      // Demo mode - use local state
+      setDemoUser({
         id: 'demo-user',
         email: 'demo@sikcon.app',
         name: role === 'employer' ? '김사장님' : '이영희',
         role,
       });
+    } else if (user) {
+      // Real user - update profile in database
+      try {
+        await updateProfile({ role });
+      } catch (error) {
+        console.error("Error updating profile:", error);
+        toast.error("프로필 업데이트에 실패했습니다.");
+        return;
+      }
     }
 
     if (role === 'employer') {
@@ -25,6 +37,18 @@ export default function SelectRole() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <motion.div
+          className="w-12 h-12 rounded-full border-2 border-muted border-t-primary"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col px-6 py-12">
       <motion.div
@@ -33,6 +57,19 @@ export default function SelectRole() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
+        {user && (
+          <motion.div
+            className="text-center mb-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <p className="text-body text-muted-foreground">
+              환영합니다, <span className="text-foreground font-semibold">{profile?.name || user.email}</span>님!
+            </p>
+          </motion.div>
+        )}
+
         <h1 className="text-title text-foreground mb-2 text-center">
           어떤 용도로 사용하시나요?
         </h1>
