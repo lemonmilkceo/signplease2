@@ -3,8 +3,16 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+
+// Pages
+import Onboarding from "./pages/Onboarding";
+import SelectRole from "./pages/SelectRole";
+import EmployerDashboard from "./pages/employer/Dashboard";
+import CreateContract from "./pages/employer/CreateContract";
+import ContractPreview from "./pages/employer/ContractPreview";
+import WorkerDashboard from "./pages/worker/Dashboard";
+import WorkerContractView from "./pages/worker/ContractView";
 
 const queryClient = new QueryClient();
 
@@ -14,11 +22,25 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <div className="max-w-md mx-auto min-h-screen bg-background">
+          <Routes>
+            <Route path="/" element={<Onboarding />} />
+            <Route path="/select-role" element={<SelectRole />} />
+            
+            {/* Employer Routes */}
+            <Route path="/employer" element={<EmployerDashboard />} />
+            <Route path="/employer/create" element={<CreateContract />} />
+            <Route path="/employer/preview/:id" element={<ContractPreview />} />
+            <Route path="/employer/contract/:id" element={<ContractPreview />} />
+            
+            {/* Worker Routes */}
+            <Route path="/worker" element={<WorkerDashboard />} />
+            <Route path="/worker/contract/:id" element={<WorkerContractView />} />
+            
+            {/* Catch-all */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
