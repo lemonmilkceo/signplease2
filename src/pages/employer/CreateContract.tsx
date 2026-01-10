@@ -9,7 +9,7 @@ import { ProgressSteps } from "@/components/ui/progress-steps";
 import { StepContainer, StepQuestion } from "@/components/ui/step-container";
 import { AIGenerating } from "@/components/ui/loading";
 import { ArrowLeft, Calendar, Clock, Wallet, Banknote, Info } from "lucide-react";
-import { WORK_DAYS_PER_WEEK, MINIMUM_WAGE_2026, MINIMUM_WAGE_WITH_HOLIDAY_2026, WageType } from "@/lib/contract-types";
+import { WORK_DAYS_PER_WEEK, MINIMUM_WAGE_2026, MINIMUM_WAGE_WITH_HOLIDAY_2026, JOB_KEYWORDS, WageType } from "@/lib/contract-types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateContractContent, createContract, ContractInput } from "@/lib/contract-api";
 import { toast } from "sonner";
@@ -638,15 +638,71 @@ export default function CreateContract() {
               <StepQuestion
                 question="주요 업무 내용을 알려주세요"
                 description="선택사항이에요"
-                className="mb-8"
+                className="mb-6"
               />
-              <textarea
-                className="w-full h-40 p-4 rounded-2xl border-2 border-border bg-background text-body focus:border-primary focus:outline-none transition-colors resize-none"
-                placeholder="예: 홀 서빙, 주문 접수, 매장 청소 등"
-                value={contractForm.jobDescription || ''}
-                onChange={(e) => setContractForm({ jobDescription: e.target.value })}
-                autoFocus
-              />
+              
+              {/* 키워드 선택 */}
+              <div className="mb-6">
+                <p className="text-caption text-muted-foreground mb-3">자주 쓰는 업무를 선택하세요</p>
+                <div className="flex flex-wrap gap-2">
+                  {JOB_KEYWORDS.map((keyword) => {
+                    const isSelected = contractForm.jobDescription?.includes(keyword);
+                    return (
+                      <motion.button
+                        key={keyword}
+                        className={`px-4 py-2 rounded-full text-caption font-medium transition-all ${
+                          isSelected
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                        onClick={() => {
+                          const current = contractForm.jobDescription || '';
+                          if (isSelected) {
+                            // 키워드 제거
+                            const updated = current
+                              .split(', ')
+                              .filter(k => k !== keyword)
+                              .join(', ');
+                            setContractForm({ jobDescription: updated });
+                          } else {
+                            // 키워드 추가
+                            const updated = current ? `${current}, ${keyword}` : keyword;
+                            setContractForm({ jobDescription: updated });
+                          }
+                        }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {keyword}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 직접 입력 */}
+              <div>
+                <p className="text-caption text-muted-foreground mb-2">직접 입력하기</p>
+                <textarea
+                  className="w-full h-24 p-4 rounded-2xl border-2 border-border bg-background text-body focus:border-primary focus:outline-none transition-colors resize-none"
+                  placeholder="추가로 입력하고 싶은 업무 내용을 적어주세요"
+                  value={contractForm.jobDescription || ''}
+                  onChange={(e) => setContractForm({ jobDescription: e.target.value })}
+                />
+              </div>
+
+              {/* 선택된 업무 요약 */}
+              {contractForm.jobDescription && (
+                <motion.div
+                  className="mt-4 p-4 rounded-2xl bg-primary/5 border border-primary/20"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <p className="text-caption text-muted-foreground mb-1">선택된 업무</p>
+                  <p className="text-body text-primary font-medium">
+                    {contractForm.jobDescription}
+                  </p>
+                </motion.div>
+              )}
             </StepContainer>
           )}
         </AnimatePresence>

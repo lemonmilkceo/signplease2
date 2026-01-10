@@ -78,6 +78,14 @@ export const MINIMUM_WAGE_2026 = 10360;
 export const WEEKLY_HOLIDAY_MULTIPLIER = 1.2;
 export const MINIMUM_WAGE_WITH_HOLIDAY_2026 = Math.round(MINIMUM_WAGE_2026 * WEEKLY_HOLIDAY_MULTIPLIER); // 12,432원
 
+export const JOB_KEYWORDS = [
+  '홀 서빙', '주문 접수', '계산 업무', '매장 청소',
+  '주방 보조', '음식 조리', '재료 손질', '설거지',
+  '포장 업무', '배달', '재고 관리', '상품 진열',
+  '고객 응대', '전화 상담', '예약 관리', '행정 업무',
+  '바리스타', '음료 제조', '베이킹', '디저트 제조',
+];
+
 export const CONTRACT_TEMPLATE = `
 근로계약서
 
