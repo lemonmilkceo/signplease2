@@ -336,6 +336,7 @@ export default function CreateContract() {
                       value={contractForm.startDate || ''}
                       onChange={(e) => setContractForm({ startDate: e.target.value })}
                       className="pl-14"
+                      max="9999-12-31"
                       autoFocus
                     />
                   </div>
@@ -379,6 +380,7 @@ export default function CreateContract() {
                         onChange={(e) => setContractForm({ endDate: e.target.value })}
                         className="pl-14"
                         min={contractForm.startDate}
+                        max="9999-12-31"
                       />
                     </div>
                   </motion.div>
