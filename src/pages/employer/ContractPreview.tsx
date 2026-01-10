@@ -22,6 +22,8 @@ import {
   Scale,
   X,
   Loader2,
+  Coffee,
+  FileCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getContract, signContractAsEmployer, Contract } from "@/lib/contract-api";
@@ -152,12 +154,14 @@ export default function ContractPreview() {
         noEndDate: contractForm.noEndDate,
         workStartTime: contract?.work_start_time || '',
         workEndTime: contract?.work_end_time || '',
+        breakTimeMinutes: contractForm.breakTimeMinutes,
         workDaysPerWeek: contractForm.workDaysPerWeek,
         workLocation: contract?.work_location || '',
         paymentMonth: contractForm.paymentMonth,
         paymentDay: contractForm.paymentDay,
         paymentEndOfMonth: contractForm.paymentEndOfMonth,
         jobDescription: contractForm.jobDescription || contract?.job_description,
+        isComprehensiveWage: true, // 포괄임금계약 여부
       };
 
       const { data, error } = await supabase.functions.invoke('contract-legal-advice', {
@@ -280,7 +284,7 @@ export default function ContractPreview() {
               </div>
             </div>
 
-            {/* 근무 일수 */}
+            {/* 근무 시간 */}
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
                 <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
@@ -293,6 +297,21 @@ export default function ContractPreview() {
                 <p className="text-caption text-muted-foreground mt-0.5">{formatWorkDays()}</p>
               </div>
             </div>
+
+            {/* 휴게시간 */}
+            {contractForm.breakTimeMinutes !== undefined && (
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                  <Coffee className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-caption text-muted-foreground mb-1">휴게시간</p>
+                  <p className="text-body font-medium text-foreground">
+                    {contractForm.breakTimeMinutes === 0 ? '없음' : `${contractForm.breakTimeMinutes}분`}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* 근무 장소 */}
             <div className="flex items-start gap-4">
@@ -346,6 +365,21 @@ export default function ContractPreview() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* 포괄임금계약 명시 */}
+          <div className="px-6 pb-4">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 mb-2">
+                <FileCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <p className="text-caption font-medium text-blue-700 dark:text-blue-300">
+                  포괄임금계약서
+                </p>
+              </div>
+              <p className="text-caption text-blue-600/80 dark:text-blue-400/80">
+                본 계약서에는 휴일근로수당 및 연차유급휴가 수당이 포함되어 있습니다.
+              </p>
+            </div>
           </div>
 
           {/* AI Legal Advice Section */}

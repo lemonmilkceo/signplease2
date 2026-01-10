@@ -8,13 +8,14 @@ import { useAppStore } from "@/lib/store";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { StepContainer, StepQuestion } from "@/components/ui/step-container";
 import { AIGenerating } from "@/components/ui/loading";
-import { ArrowLeft, Calendar, Clock, Wallet, Banknote, Info, Sparkles } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Wallet, Banknote, Info, Sparkles, Coffee } from "lucide-react";
 import { WORK_DAYS_PER_WEEK, MINIMUM_WAGE_2026, MINIMUM_WAGE_WITH_HOLIDAY_2026, JOB_KEYWORDS, WageType } from "@/lib/contract-types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateContractContent, createContract, ContractInput } from "@/lib/contract-api";
 import { toast } from "sonner";
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
+const BREAK_TIME_OPTIONS = [0, 30, 60, 90, 120];
 
 export default function CreateContract() {
   const navigate = useNavigate();
@@ -112,13 +113,15 @@ export default function CreateContract() {
       case 5:
         return !!contractForm.workStartTime && !!contractForm.workEndTime;
       case 6:
-        return (contractForm.workLocation?.length || 0) > 0;
+        return contractForm.breakTimeMinutes !== undefined; // 휴게시간 필수
       case 7:
+        return (contractForm.workLocation?.length || 0) > 0;
+      case 8:
         // 말일지급이거나 지급일이 선택되어야 유효
         const hasPaymentDay = (contractForm.paymentDay || 0) >= 1 && (contractForm.paymentDay || 0) <= 28;
         const isEndOfMonth = contractForm.paymentEndOfMonth === true;
         return (hasPaymentDay || isEndOfMonth) && !!contractForm.paymentMonth;
-      case 8:
+      case 9:
         return true; // 업무내용은 선택사항
       default:
         return false;
@@ -519,6 +522,51 @@ export default function CreateContract() {
           {currentStep === 6 && (
             <StepContainer key="step-6" stepKey={6}>
               <StepQuestion
+                question="휴게시간을 알려주세요"
+                description="4시간 근무 시 30분, 8시간 근무 시 1시간 이상 휴게시간이 필요해요"
+                className="mb-8"
+              />
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  {BREAK_TIME_OPTIONS.map((minutes) => (
+                    <motion.button
+                      key={minutes}
+                      className={`h-16 rounded-2xl text-body font-semibold transition-all flex flex-col items-center justify-center gap-1 ${
+                        contractForm.breakTimeMinutes === minutes
+                          ? 'bg-primary text-primary-foreground shadow-button'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                      onClick={() => setContractForm({ breakTimeMinutes: minutes })}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <Coffee className={`w-5 h-5 ${contractForm.breakTimeMinutes === minutes ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                      <span>{minutes === 0 ? '없음' : `${minutes}분`}</span>
+                    </motion.button>
+                  ))}
+                </div>
+
+                {/* 휴게시간 안내 */}
+                {contractForm.breakTimeMinutes !== undefined && (
+                  <motion.div
+                    className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <p className="text-caption text-amber-700 dark:text-amber-300">
+                      <Info className="w-4 h-4 inline mr-1" />
+                      {contractForm.breakTimeMinutes === 0 
+                        ? '4시간 이상 근무 시 30분 이상 휴게시간이 법적으로 필요해요'
+                        : `${contractForm.breakTimeMinutes}분 휴게시간이 설정되었어요`}
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+            </StepContainer>
+          )}
+
+          {currentStep === 7 && (
+            <StepContainer key="step-7" stepKey={7}>
+              <StepQuestion
                 question="근무 장소는 어디인가요?"
                 className="mb-8"
               />
@@ -533,8 +581,8 @@ export default function CreateContract() {
             </StepContainer>
           )}
 
-          {currentStep === 7 && (
-            <StepContainer key="step-7" stepKey={7}>
+          {currentStep === 8 && (
+            <StepContainer key="step-8" stepKey={8}>
               <StepQuestion
                 question="임금은 언제 지급하나요?"
                 className="mb-8"
@@ -633,8 +681,8 @@ export default function CreateContract() {
             </StepContainer>
           )}
 
-          {currentStep === 8 && (
-            <StepContainer key="step-8" stepKey={8}>
+          {currentStep === 9 && (
+            <StepContainer key="step-9" stepKey={9}>
               <StepQuestion
                 question="주요 업무 내용을 알려주세요"
                 description="선택사항이에요"

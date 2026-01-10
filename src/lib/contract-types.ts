@@ -14,6 +14,7 @@ export interface ContractData {
   workDaysPerWeek?: number;
   workStartTime: string;
   workEndTime: string;
+  breakTimeMinutes?: number; // 휴게시간 (분 단위)
   workLocation: string;
   paymentDay?: number;
   paymentMonth?: 'current' | 'next';
@@ -24,6 +25,7 @@ export interface ContractData {
   employerSignature?: string;
   workerSignature?: string;
   includeWeeklyHolidayPay?: boolean;
+  isComprehensiveWage?: boolean; // 포괄임금계약 여부
 }
 
 export interface User {
