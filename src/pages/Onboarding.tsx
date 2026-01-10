@@ -93,82 +93,11 @@ export default function Onboarding() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          {/* Logo Container */}
-          <motion.div
-            className="relative inline-flex items-center justify-center mb-8"
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 150, damping: 15 }}
-          >
-            {/* Glow Effect */}
-            <motion.div
-              className="absolute inset-0 bg-primary/30 rounded-[28px] blur-xl"
-              animate={{ 
-                scale: [1, 1.15, 1],
-                opacity: [0.5, 0.8, 0.5],
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            />
-            
-            {/* Main Logo */}
-            <div className="relative w-28 h-28 rounded-[28px] bg-gradient-to-br from-primary via-primary to-primary/80 shadow-2xl flex items-center justify-center overflow-hidden">
-              {/* Inner shine */}
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"
-                initial={{ x: "-100%", y: "-100%" }}
-                animate={{ x: "100%", y: "100%" }}
-                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3, ease: "easeInOut" }}
-              />
-              
-              {/* Pen Icon with signature path */}
-              <svg 
-                viewBox="0 0 64 64" 
-                className="w-16 h-16 text-primary-foreground relative z-10"
-                fill="none"
-              >
-                {/* Signature path - animated */}
-                <motion.path
-                  d="M12 44 Q20 32, 28 36 Q36 40, 44 28 Q48 22, 52 24"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  fill="none"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                  transition={{ delay: 0.8, duration: 1.2, ease: "easeOut" }}
-                />
-                {/* Underline */}
-                <motion.path
-                  d="M12 50 L52 50"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  initial={{ pathLength: 0 }}
-                  animate={{ pathLength: 1 }}
-                  transition={{ delay: 2, duration: 0.5, ease: "easeOut" }}
-                />
-                {/* Checkmark */}
-                <motion.path
-                  d="M40 16 L46 22 L56 10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 1 }}
-                  transition={{ delay: 2.5, duration: 0.4, ease: "easeOut" }}
-                />
-              </svg>
-            </div>
-          </motion.div>
-          
-          {/* Title with stagger animation */}
           <motion.h1 
             className="text-display text-foreground mb-3 font-bold tracking-tight"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
           >
             싸인해주세요
           </motion.h1>
@@ -176,7 +105,7 @@ export default function Onboarding() {
             className="text-body-lg text-muted-foreground"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.7, duration: 0.5 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
           >
             30초만에 근로계약서 완성
           </motion.p>
