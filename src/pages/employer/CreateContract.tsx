@@ -8,8 +8,9 @@ import { useAppStore } from "@/lib/store";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { StepContainer, StepQuestion } from "@/components/ui/step-container";
 import { AIGenerating } from "@/components/ui/loading";
-import { ArrowLeft, Calendar, Clock, Wallet, Banknote } from "lucide-react";
-import { WORK_DAYS, MINIMUM_WAGE_2025, WageType } from "@/lib/contract-types";
+import { ArrowLeft, Calendar, Clock, Wallet, Banknote, Info } from "lucide-react";
+import { WORK_DAYS, MINIMUM_WAGE_2026, MINIMUM_WAGE_WITH_HOLIDAY_2026, WageType } from "@/lib/contract-types";
+import { Checkbox } from "@/components/ui/checkbox";
 import { generateContractContent, createContract, ContractInput } from "@/lib/contract-api";
 import { toast } from "sonner";
 
@@ -50,7 +51,7 @@ export default function CreateContract() {
     const contractData: ContractInput = {
       employerName: profile?.name || '사장님',
       workerName: contractForm.workerName || '',
-      hourlyWage: contractForm.hourlyWage || MINIMUM_WAGE_2025,
+      hourlyWage: contractForm.hourlyWage || MINIMUM_WAGE_2026,
       startDate: contractForm.startDate || new Date().toISOString().split('T')[0],
       workDays: contractForm.workDays || [],
       workStartTime: contractForm.workStartTime || '09:00',
@@ -96,7 +97,10 @@ export default function CreateContract() {
       case 2:
         if (!contractForm.wageType) return false;
         if (contractForm.wageType === 'hourly') {
-          return (contractForm.hourlyWage || 0) >= MINIMUM_WAGE_2025;
+          const minWage = contractForm.includeWeeklyHolidayPay 
+            ? MINIMUM_WAGE_WITH_HOLIDAY_2026 
+            : MINIMUM_WAGE_2026;
+          return (contractForm.hourlyWage || 0) >= minWage;
         } else {
           return (contractForm.monthlyWage || 0) > 0;
         }
@@ -221,14 +225,14 @@ export default function CreateContract() {
                   {contractForm.wageType === 'hourly' ? (
                     <>
                       <p className="text-caption text-muted-foreground mb-2">
-                        2025년 최저시급은 {MINIMUM_WAGE_2025.toLocaleString()}원이에요
+                        2026년 최저시급은 {MINIMUM_WAGE_2026.toLocaleString()}원이에요
                       </p>
                       <div className="relative">
                         <Input
                           variant="toss"
                           inputSize="xl"
                           type="number"
-                          placeholder={MINIMUM_WAGE_2025.toString()}
+                          placeholder={MINIMUM_WAGE_2026.toString()}
                           value={contractForm.hourlyWage || ''}
                           onChange={(e) => setContractForm({ hourlyWage: Number(e.target.value) })}
                           className="pr-12"
@@ -238,13 +242,51 @@ export default function CreateContract() {
                           원
                         </span>
                       </div>
-                      {(contractForm.hourlyWage || 0) > 0 && contractForm.hourlyWage! < MINIMUM_WAGE_2025 && (
+                      
+                      {/* 주휴수당 포함 체크박스 */}
+                      <div className="mt-4 flex items-start gap-3">
+                        <Checkbox
+                          id="weeklyHolidayPay"
+                          checked={contractForm.includeWeeklyHolidayPay || false}
+                          onCheckedChange={(checked) => 
+                            setContractForm({ includeWeeklyHolidayPay: checked === true })
+                          }
+                          className="mt-0.5"
+                        />
+                        <div className="flex-1">
+                          <label 
+                            htmlFor="weeklyHolidayPay" 
+                            className="text-body font-medium text-foreground cursor-pointer"
+                          >
+                            주휴수당 포함
+                          </label>
+                          {contractForm.includeWeeklyHolidayPay && (
+                            <motion.p
+                              className="mt-1 text-caption text-primary flex items-center gap-1"
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                            >
+                              <Info className="w-3.5 h-3.5" />
+                              주휴수당 포함 시 최저시급은 {MINIMUM_WAGE_WITH_HOLIDAY_2026.toLocaleString()}원이에요
+                            </motion.p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* 최저시급 미만 경고 */}
+                      {(contractForm.hourlyWage || 0) > 0 && (
+                        contractForm.includeWeeklyHolidayPay 
+                          ? contractForm.hourlyWage! < MINIMUM_WAGE_WITH_HOLIDAY_2026 
+                          : contractForm.hourlyWage! < MINIMUM_WAGE_2026
+                      ) && (
                         <motion.p
                           className="mt-3 text-caption text-destructive"
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                         >
-                          최저시급 이상으로 설정해주세요
+                          {contractForm.includeWeeklyHolidayPay 
+                            ? `주휴수당 포함 시 최저시급(${MINIMUM_WAGE_WITH_HOLIDAY_2026.toLocaleString()}원) 이상으로 설정해주세요`
+                            : '최저시급 이상으로 설정해주세요'}
                         </motion.p>
                       )}
                     </>

@@ -17,6 +17,7 @@ export interface ContractData {
   createdAt?: string;
   employerSignature?: string;
   workerSignature?: string;
+  includeWeeklyHolidayPay?: boolean;
 }
 
 export interface User {
@@ -66,6 +67,9 @@ export const MOCK_CONTRACTS: ContractData[] = [
 export const WORK_DAYS = ['월', '화', '수', '목', '금', '토', '일'];
 
 export const MINIMUM_WAGE_2025 = 10030;
+export const MINIMUM_WAGE_2026 = 10360;
+export const WEEKLY_HOLIDAY_MULTIPLIER = 1.2;
+export const MINIMUM_WAGE_WITH_HOLIDAY_2026 = Math.round(MINIMUM_WAGE_2026 * WEEKLY_HOLIDAY_MULTIPLIER); // 12,432원
 
 export const CONTRACT_TEMPLATE = `
 근로계약서
