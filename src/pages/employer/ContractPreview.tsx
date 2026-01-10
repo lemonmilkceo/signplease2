@@ -348,7 +348,7 @@ export default function ContractPreview() {
             )}
           </div>
 
-          {/* AI Notice & Legal Advice Button */}
+          {/* AI Legal Advice Section */}
           <div className="px-6 pb-6 space-y-3">
             <div className="p-4 rounded-2xl bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 border border-violet-200 dark:border-violet-800">
               <div className="flex items-center gap-2 mb-1">
@@ -358,7 +358,7 @@ export default function ContractPreview() {
                 </p>
               </div>
               <p className="text-caption text-violet-600/80 dark:text-violet-400/80">
-                최신 근로기준법에 맞게 작성되었습니다.
+                아래 버튼을 눌러 법적 검토를 받아보세요.
               </p>
             </div>
 
