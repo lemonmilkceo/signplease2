@@ -8,7 +8,7 @@ import { useAppStore } from "@/lib/store";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { StepContainer, StepQuestion } from "@/components/ui/step-container";
 import { AIGenerating } from "@/components/ui/loading";
-import { ArrowLeft, Calendar, Clock, Wallet, Banknote, Info } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Wallet, Banknote, Info, Sparkles } from "lucide-react";
 import { WORK_DAYS_PER_WEEK, MINIMUM_WAGE_2026, MINIMUM_WAGE_WITH_HOLIDAY_2026, JOB_KEYWORDS, WageType } from "@/lib/contract-types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateContractContent, createContract, ContractInput } from "@/lib/contract-api";
@@ -710,14 +710,26 @@ export default function CreateContract() {
 
       {/* Bottom Button */}
       <div className="px-6 pb-8 pt-4">
-        <Button
-          variant="toss"
-          size="full"
-          onClick={handleNext}
-          disabled={!isStepValid()}
-        >
-          {currentStep === TOTAL_STEPS ? 'AI로 계약서 생성하기' : '다음'}
-        </Button>
+        {currentStep === TOTAL_STEPS ? (
+          <Button
+            size="full"
+            onClick={handleNext}
+            disabled={!isStepValid()}
+            className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-semibold shadow-lg shadow-purple-500/30 transition-all duration-300"
+          >
+            <Sparkles className="w-5 h-5 mr-2" />
+            AI로 계약서 생성하기
+          </Button>
+        ) : (
+          <Button
+            variant="toss"
+            size="full"
+            onClick={handleNext}
+            disabled={!isStepValid()}
+          >
+            다음
+          </Button>
+        )}
       </div>
     </div>
   );
