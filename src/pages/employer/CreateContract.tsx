@@ -114,7 +114,10 @@ export default function CreateContract() {
       case 6:
         return (contractForm.workLocation?.length || 0) > 0;
       case 7:
-        return (contractForm.paymentDay || 0) >= 1 && (contractForm.paymentDay || 0) <= 31;
+        // 말일지급이거나 지급일이 선택되어야 유효
+        const hasPaymentDay = (contractForm.paymentDay || 0) >= 1 && (contractForm.paymentDay || 0) <= 28;
+        const isEndOfMonth = contractForm.paymentEndOfMonth === true;
+        return (hasPaymentDay || isEndOfMonth) && !!contractForm.paymentMonth;
       case 8:
         return true; // 업무내용은 선택사항
       default:
@@ -533,28 +536,100 @@ export default function CreateContract() {
           {currentStep === 7 && (
             <StepContainer key="step-7" stepKey={7}>
               <StepQuestion
-                question="임금은 매월 며칠에 지급하나요?"
+                question="임금은 언제 지급하나요?"
                 className="mb-8"
               />
-              <div className="grid grid-cols-7 gap-2">
-                {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
-                  <motion.button
-                    key={day}
-                    className={`h-12 rounded-xl text-body font-medium transition-all ${
-                      contractForm.paymentDay === day
-                        ? 'bg-primary text-primary-foreground shadow-button'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
-                    onClick={() => setContractForm({ paymentDay: day })}
-                    whileTap={{ scale: 0.95 }}
+              <div className="space-y-6">
+                {/* 당월/익월 선택 */}
+                <div>
+                  <p className="text-body font-medium text-foreground mb-3">지급 기준</p>
+                  <div className="flex gap-3">
+                    <motion.button
+                      className={`flex-1 h-14 rounded-2xl text-body font-semibold transition-all ${
+                        contractForm.paymentMonth === 'current'
+                          ? 'bg-primary text-primary-foreground shadow-button'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                      onClick={() => setContractForm({ paymentMonth: 'current' })}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      당월 지급
+                    </motion.button>
+                    <motion.button
+                      className={`flex-1 h-14 rounded-2xl text-body font-semibold transition-all ${
+                        contractForm.paymentMonth === 'next'
+                          ? 'bg-primary text-primary-foreground shadow-button'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                      onClick={() => setContractForm({ paymentMonth: 'next' })}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      익월 지급
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* 말일지급 체크박스 */}
+                <div className="flex items-center gap-3 py-2">
+                  <Checkbox
+                    id="paymentEndOfMonth"
+                    checked={contractForm.paymentEndOfMonth || false}
+                    onCheckedChange={(checked) => 
+                      setContractForm({ 
+                        paymentEndOfMonth: checked === true,
+                        paymentDay: checked === true ? undefined : contractForm.paymentDay 
+                      })
+                    }
+                  />
+                  <label 
+                    htmlFor="paymentEndOfMonth" 
+                    className="text-body font-medium text-foreground cursor-pointer"
                   >
-                    {day}
-                  </motion.button>
-                ))}
+                    말일 지급
+                  </label>
+                </div>
+
+                {/* 지급일 선택 (말일 지급이 아닐 때만) */}
+                {!contractForm.paymentEndOfMonth && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                    <p className="text-body font-medium text-foreground mb-3">지급일</p>
+                    <div className="grid grid-cols-7 gap-2">
+                      {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
+                        <motion.button
+                          key={day}
+                          className={`h-11 rounded-xl text-caption font-medium transition-all ${
+                            contractForm.paymentDay === day
+                              ? 'bg-primary text-primary-foreground shadow-button'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          }`}
+                          onClick={() => setContractForm({ paymentDay: day })}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          {day}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* 지급일 요약 */}
+                {contractForm.paymentMonth && (contractForm.paymentEndOfMonth || contractForm.paymentDay) && (
+                  <motion.div
+                    className="p-4 rounded-2xl bg-primary/5 border border-primary/20"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <p className="text-body text-primary font-medium text-center">
+                      {contractForm.paymentMonth === 'current' ? '당월' : '익월'}{' '}
+                      {contractForm.paymentEndOfMonth ? '말일' : `${contractForm.paymentDay}일`} 지급
+                    </p>
+                  </motion.div>
+                )}
               </div>
-              <p className="mt-4 text-caption text-muted-foreground">
-                * 29일 이후는 월마다 일수가 달라 선택할 수 없어요
-              </p>
             </StepContainer>
           )}
 
