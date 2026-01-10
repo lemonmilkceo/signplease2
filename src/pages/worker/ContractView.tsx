@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAppStore } from "@/lib/store";
+import { useAuth } from "@/contexts/AuthContext";
+import { getContract, signContractAsWorker, explainTerm, Contract } from "@/lib/contract-api";
 import { SignatureCanvas } from "@/components/ui/signature-canvas";
 import {
   ArrowLeft,
@@ -14,8 +15,10 @@ import {
   ChevronLeft,
   ChevronRight,
   HelpCircle,
-  Check,
   CheckCircle2,
+  Loader2,
+  Sparkles,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -24,19 +27,47 @@ interface ContractSlide {
   title: string;
   value: string;
   description?: string;
-  helpText?: string;
+  helpTerm?: string;
 }
 
 export default function WorkerContractView() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { contracts, updateContract } = useAppStore();
+  const { user } = useAuth();
+  const [contract, setContract] = useState<Contract | null>(null);
+  const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSignatureOpen, setIsSignatureOpen] = useState(false);
   const [showHelp, setShowHelp] = useState<number | null>(null);
+  const [helpExplanation, setHelpExplanation] = useState<string | null>(null);
+  const [loadingHelp, setLoadingHelp] = useState(false);
+  const [signing, setSigning] = useState(false);
   const constraintsRef = useRef(null);
 
-  const contract = contracts.find((c) => c.id === id);
+  useEffect(() => {
+    async function fetchContract() {
+      if (!id) return;
+      try {
+        const data = await getContract(id);
+        setContract(data);
+      } catch (error) {
+        console.error('Error fetching contract:', error);
+        toast.error('계약서를 불러오는데 실패했습니다');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchContract();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!contract) {
     return (
@@ -50,34 +81,34 @@ export default function WorkerContractView() {
     {
       icon: <User className="w-8 h-8" />,
       title: "사업주",
-      value: contract.employerName,
+      value: contract.employer_name,
       description: "근로계약의 당사자입니다",
     },
     {
       icon: <Wallet className="w-8 h-8" />,
       title: "시급",
-      value: `${contract.hourlyWage.toLocaleString()}원`,
+      value: `${contract.hourly_wage.toLocaleString()}원`,
       description: "2025년 최저시급은 10,030원입니다",
-      helpText: "시급은 근로기준법에 따라 최저임금 이상이어야 합니다. 주휴수당, 연장근로수당 등은 별도로 계산됩니다.",
+      helpTerm: "시급",
     },
     {
       icon: <Calendar className="w-8 h-8" />,
       title: "근무 시작일",
-      value: contract.startDate,
-      helpText: "이 날짜부터 근로관계가 시작됩니다. 4대 보험 가입도 이 날부터 적용됩니다.",
+      value: contract.start_date,
+      helpTerm: "근무 시작일",
     },
     {
       icon: <Clock className="w-8 h-8" />,
       title: "근무 시간",
-      value: `${contract.workStartTime} - ${contract.workEndTime}`,
-      description: `매주 ${contract.workDays.join(', ')}요일`,
-      helpText: "1일 8시간, 주 40시간을 초과하는 근무는 연장근로수당(시급의 1.5배)이 지급됩니다.",
+      value: `${contract.work_start_time} - ${contract.work_end_time}`,
+      description: `매주 ${contract.work_days.join(', ')}`,
+      helpTerm: "근무 시간",
     },
     {
       icon: <MapPin className="w-8 h-8" />,
       title: "근무 장소",
-      value: contract.workLocation,
-      helpText: "실제 근무하는 장소입니다. 사업장 변경 시 사전 협의가 필요합니다.",
+      value: contract.work_location,
+      helpTerm: "근무 장소",
     },
   ];
 
@@ -85,18 +116,56 @@ export default function WorkerContractView() {
     const threshold = 50;
     if (info.offset.x < -threshold && currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
+      setShowHelp(null);
+      setHelpExplanation(null);
     } else if (info.offset.x > threshold && currentSlide > 0) {
       setCurrentSlide(currentSlide - 1);
+      setShowHelp(null);
+      setHelpExplanation(null);
     }
   };
 
-  const handleSign = (signatureData: string) => {
-    updateContract(contract.id!, {
-      workerSignature: signatureData,
-      status: 'completed',
-    });
-    toast.success("계약이 완료되었습니다!");
-    navigate('/worker');
+  const handleHelpClick = async (slideIndex: number) => {
+    const slide = slides[slideIndex];
+    if (!slide.helpTerm) return;
+
+    if (showHelp === slideIndex) {
+      setShowHelp(null);
+      setHelpExplanation(null);
+      return;
+    }
+
+    setShowHelp(slideIndex);
+    setLoadingHelp(true);
+    setHelpExplanation(null);
+
+    try {
+      const explanation = await explainTerm(slide.helpTerm, `근로계약서의 ${slide.title} 항목`);
+      setHelpExplanation(explanation);
+    } catch (error) {
+      console.error('Error getting explanation:', error);
+      toast.error('설명을 불러오는데 실패했습니다');
+      setShowHelp(null);
+    } finally {
+      setLoadingHelp(false);
+    }
+  };
+
+  const handleSign = async (signatureData: string) => {
+    if (!contract.id) return;
+    
+    setSigning(true);
+    try {
+      await signContractAsWorker(contract.id, signatureData);
+      toast.success("계약이 완료되었습니다!");
+      navigate('/worker');
+    } catch (error) {
+      console.error('Error signing contract:', error);
+      toast.error('서명에 실패했습니다');
+    } finally {
+      setSigning(false);
+      setIsSignatureOpen(false);
+    }
   };
 
   const isCompleted = contract.status === 'completed';
@@ -126,7 +195,11 @@ export default function WorkerContractView() {
                 ? 'w-6 bg-primary'
                 : 'bg-muted-foreground/30'
             }`}
-            onClick={() => setCurrentSlide(index)}
+            onClick={() => {
+              setCurrentSlide(index);
+              setShowHelp(null);
+              setHelpExplanation(null);
+            }}
           />
         ))}
       </div>
@@ -147,28 +220,46 @@ export default function WorkerContractView() {
             onDragEnd={handleDragEnd}
           >
             <div className="bg-card rounded-3xl p-8 h-full flex flex-col items-center justify-center shadow-card border border-border/50 relative">
-              {/* Help Button */}
-              {slides[currentSlide].helpText && (
+              {/* AI Help Button */}
+              {slides[currentSlide].helpTerm && (
                 <button
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                  onClick={() => setShowHelp(showHelp === currentSlide ? null : currentSlide)}
+                  className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                    showHelp === currentSlide 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-primary/10 text-primary hover:bg-primary/20'
+                  }`}
+                  onClick={() => handleHelpClick(currentSlide)}
                 >
-                  <HelpCircle className="w-5 h-5" />
+                  {showHelp === currentSlide ? (
+                    <X className="w-5 h-5" />
+                  ) : (
+                    <Sparkles className="w-5 h-5" />
+                  )}
                 </button>
               )}
 
-              {/* Help Tooltip */}
+              {/* AI Explanation Tooltip */}
               <AnimatePresence>
-                {showHelp === currentSlide && slides[currentSlide].helpText && (
+                {showHelp === currentSlide && (
                   <motion.div
-                    className="absolute top-16 left-4 right-4 p-4 bg-accent rounded-2xl border border-primary/20"
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-16 left-4 right-4 p-4 bg-gradient-to-br from-primary/10 to-accent rounded-2xl border border-primary/20"
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
                   >
-                    <p className="text-caption text-foreground">
-                      {slides[currentSlide].helpText}
-                    </p>
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                      {loadingHelp ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                          <span className="text-caption text-muted-foreground">AI가 설명을 준비하고 있어요...</span>
+                        </div>
+                      ) : (
+                        <p className="text-caption text-foreground leading-relaxed">
+                          {helpExplanation}
+                        </p>
+                      )}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -190,6 +281,19 @@ export default function WorkerContractView() {
                   {slides[currentSlide].description}
                 </p>
               )}
+
+              {/* AI Help hint */}
+              {slides[currentSlide].helpTerm && !showHelp && (
+                <motion.p 
+                  className="absolute bottom-6 text-xs text-muted-foreground flex items-center gap-1"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1 }}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  터치하면 AI가 쉽게 설명해드려요
+                </motion.p>
+              )}
             </div>
           </motion.div>
         </AnimatePresence>
@@ -202,7 +306,11 @@ export default function WorkerContractView() {
                 ? 'opacity-0 pointer-events-none'
                 : 'bg-muted hover:bg-muted/80 text-muted-foreground'
             }`}
-            onClick={() => setCurrentSlide(currentSlide - 1)}
+            onClick={() => {
+              setCurrentSlide(currentSlide - 1);
+              setShowHelp(null);
+              setHelpExplanation(null);
+            }}
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -212,7 +320,11 @@ export default function WorkerContractView() {
                 ? 'opacity-0 pointer-events-none'
                 : 'bg-muted hover:bg-muted/80 text-muted-foreground'
             }`}
-            onClick={() => setCurrentSlide(currentSlide + 1)}
+            onClick={() => {
+              setCurrentSlide(currentSlide + 1);
+              setShowHelp(null);
+              setHelpExplanation(null);
+            }}
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -232,7 +344,7 @@ export default function WorkerContractView() {
               <span className="text-body font-semibold">계약 완료</span>
             </div>
             <p className="text-caption text-muted-foreground text-center">
-              이 계약서는 {contract.createdAt}에 서명되었습니다
+              이 계약서는 {contract.signed_at ? new Date(contract.signed_at).toLocaleDateString('ko-KR') : ''}에 서명되었습니다
             </p>
           </motion.div>
         ) : (
@@ -240,8 +352,16 @@ export default function WorkerContractView() {
             variant="toss"
             size="full"
             onClick={() => setIsSignatureOpen(true)}
+            disabled={signing}
           >
-            확인했으며, 서명합니다
+            {signing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                서명 중...
+              </>
+            ) : (
+              '확인했으며, 서명합니다'
+            )}
           </Button>
         )}
       </div>
