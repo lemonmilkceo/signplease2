@@ -365,7 +365,7 @@ export default function CreateContract() {
                     htmlFor="noEndDate" 
                     className="text-body font-medium text-foreground cursor-pointer"
                   >
-                    계약종료일 없음 (무기계약)
+                    계약종료일 없음
                   </label>
                 </div>
                 
