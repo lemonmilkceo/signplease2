@@ -455,7 +455,7 @@ export default function CreateContract() {
                         setContractForm({ workStartTime: `${hours}:${e.target.value}` });
                       }}
                     >
-                      {['00', '30'].map((min) => (
+                      {['00', '10', '20', '30', '40', '50'].map((min) => (
                         <option key={min} value={min}>
                           {min}분
                         </option>
@@ -491,7 +491,7 @@ export default function CreateContract() {
                         setContractForm({ workEndTime: `${hours}:${e.target.value}` });
                       }}
                     >
-                      {['00', '30'].map((min) => (
+                      {['00', '10', '20', '30', '40', '50'].map((min) => (
                         <option key={min} value={min}>
                           {min}분
                         </option>
