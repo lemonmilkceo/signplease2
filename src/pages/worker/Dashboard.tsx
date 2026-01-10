@@ -1,14 +1,63 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useAppStore } from "@/lib/store";
-import { FileText, ChevronRight, Clock, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getContract, Contract } from "@/lib/contract-api";
+import { FileText, ChevronRight, Clock, CheckCircle2, Loader2 } from "lucide-react";
 import { CardSlide } from "@/components/ui/card-slide";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function WorkerDashboard() {
   const navigate = useNavigate();
-  const { contracts, user } = useAppStore();
+  const { profile, user } = useAuth();
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // In real app, would filter by worker's contracts
+  useEffect(() => {
+    async function fetchContracts() {
+      try {
+        // Fetch pending contracts (public access via RLS)
+        const { data: pendingData, error: pendingError } = await supabase
+          .from('contracts')
+          .select('*')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false });
+
+        if (pendingError) throw pendingError;
+
+        // Fetch contracts assigned to this worker
+        let assignedData: Contract[] = [];
+        if (user) {
+          const { data, error } = await supabase
+            .from('contracts')
+            .select('*')
+            .eq('worker_id', user.id)
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+          assignedData = (data || []) as Contract[];
+        }
+
+        // Combine and deduplicate
+        const allContracts = [...(pendingData || []), ...assignedData] as Contract[];
+        const uniqueContracts = allContracts.filter(
+          (contract, index, self) =>
+            index === self.findIndex((c) => c.id === contract.id)
+        );
+
+        setContracts(uniqueContracts);
+      } catch (error) {
+        console.error('Error fetching contracts:', error);
+        toast.error('계약서를 불러오는데 실패했습니다');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchContracts();
+  }, [user]);
+
   const pendingContracts = contracts.filter((c) => c.status === 'pending');
   const completedContracts = contracts.filter((c) => c.status === 'completed');
 
@@ -33,6 +82,14 @@ export default function WorkerDashboard() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -43,7 +100,7 @@ export default function WorkerDashboard() {
         >
           <p className="text-body text-muted-foreground mb-1">안녕하세요,</p>
           <h1 className="text-title text-foreground">
-            {user?.name || '근로자'}님 👋
+            {profile?.name || '근로자'}님 👋
           </h1>
         </motion.div>
       </div>
@@ -77,10 +134,10 @@ export default function WorkerDashboard() {
                       </div>
                       <div>
                         <p className="text-body font-semibold text-foreground">
-                          {contract.employerName}
+                          {contract.employer_name}
                         </p>
                         <p className="text-caption text-muted-foreground">
-                          시급 {contract.hourlyWage.toLocaleString()}원 · {contract.workDays.join(', ')}
+                          시급 {contract.hourly_wage.toLocaleString()}원 · {contract.work_days.join(', ')}
                         </p>
                       </div>
                     </div>
@@ -125,10 +182,10 @@ export default function WorkerDashboard() {
                       </div>
                       <div>
                         <p className="text-body font-semibold text-foreground">
-                          {contract.employerName}
+                          {contract.employer_name}
                         </p>
                         <p className="text-caption text-muted-foreground">
-                          {contract.startDate} 시작
+                          {contract.start_date} 시작
                         </p>
                       </div>
                     </div>
