@@ -73,17 +73,34 @@ export default function Onboarding() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          {/* Logo */}
           <motion.div
-            className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-primary/10 mb-6"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
+            className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-primary/70 mb-6 shadow-lg"
+            initial={{ scale: 0.8, rotate: -5 }}
+            animate={{ scale: 1, rotate: 0 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
           >
-            <FileText className="w-10 h-10 text-primary" />
+            <svg 
+              viewBox="0 0 48 48" 
+              className="w-14 h-14 text-primary-foreground"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {/* Pen/signature stroke */}
+              <path d="M8 36c4-8 12-16 20-20" />
+              <path d="M28 16c2 2 4 6 4 10s-2 8-6 12" />
+              {/* Checkmark */}
+              <path d="M32 28l4 4 8-10" strokeWidth="3" />
+              {/* Underline flourish */}
+              <path d="M6 40c8 0 16-2 24-4" />
+            </svg>
           </motion.div>
           
-          <h1 className="text-display text-foreground mb-4">
-            식콘
+          <h1 className="text-display text-foreground mb-2">
+            싸인해주세요
           </h1>
           <p className="text-body-lg text-muted-foreground">
             30초만에 근로계약서 완성
