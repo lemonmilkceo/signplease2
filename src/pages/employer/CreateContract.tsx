@@ -424,35 +424,91 @@ export default function CreateContract() {
                 question="근무 시간을 알려주세요"
                 className="mb-8"
               />
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* 시작 시간 */}
                 <div>
-                  <p className="text-caption text-muted-foreground mb-2">시작 시간</p>
-                  <div className="relative">
-                    <Clock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      variant="toss"
-                      inputSize="lg"
-                      type="time"
-                      value={contractForm.workStartTime || ''}
-                      onChange={(e) => setContractForm({ workStartTime: e.target.value })}
-                      className="pl-14"
-                    />
+                  <p className="text-body font-medium text-foreground mb-3">출근 시간</p>
+                  <div className="flex items-center gap-3">
+                    <select
+                      className="flex-1 h-14 px-4 rounded-2xl border-2 border-border bg-background text-body-lg font-semibold text-center focus:border-primary focus:outline-none transition-colors appearance-none cursor-pointer"
+                      value={contractForm.workStartTime?.split(':')[0] || '09'}
+                      onChange={(e) => {
+                        const minutes = contractForm.workStartTime?.split(':')[1] || '00';
+                        setContractForm({ workStartTime: `${e.target.value}:${minutes}` });
+                      }}
+                    >
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <option key={i} value={i.toString().padStart(2, '0')}>
+                          {i.toString().padStart(2, '0')}시
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-muted-foreground text-xl">:</span>
+                    <select
+                      className="flex-1 h-14 px-4 rounded-2xl border-2 border-border bg-background text-body-lg font-semibold text-center focus:border-primary focus:outline-none transition-colors appearance-none cursor-pointer"
+                      value={contractForm.workStartTime?.split(':')[1] || '00'}
+                      onChange={(e) => {
+                        const hours = contractForm.workStartTime?.split(':')[0] || '09';
+                        setContractForm({ workStartTime: `${hours}:${e.target.value}` });
+                      }}
+                    >
+                      {['00', '30'].map((min) => (
+                        <option key={min} value={min}>
+                          {min}분
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
+
+                {/* 종료 시간 */}
                 <div>
-                  <p className="text-caption text-muted-foreground mb-2">종료 시간</p>
-                  <div className="relative">
-                    <Clock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      variant="toss"
-                      inputSize="lg"
-                      type="time"
-                      value={contractForm.workEndTime || ''}
-                      onChange={(e) => setContractForm({ workEndTime: e.target.value })}
-                      className="pl-14"
-                    />
+                  <p className="text-body font-medium text-foreground mb-3">퇴근 시간</p>
+                  <div className="flex items-center gap-3">
+                    <select
+                      className="flex-1 h-14 px-4 rounded-2xl border-2 border-border bg-background text-body-lg font-semibold text-center focus:border-primary focus:outline-none transition-colors appearance-none cursor-pointer"
+                      value={contractForm.workEndTime?.split(':')[0] || '18'}
+                      onChange={(e) => {
+                        const minutes = contractForm.workEndTime?.split(':')[1] || '00';
+                        setContractForm({ workEndTime: `${e.target.value}:${minutes}` });
+                      }}
+                    >
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <option key={i} value={i.toString().padStart(2, '0')}>
+                          {i.toString().padStart(2, '0')}시
+                        </option>
+                      ))}
+                    </select>
+                    <span className="text-muted-foreground text-xl">:</span>
+                    <select
+                      className="flex-1 h-14 px-4 rounded-2xl border-2 border-border bg-background text-body-lg font-semibold text-center focus:border-primary focus:outline-none transition-colors appearance-none cursor-pointer"
+                      value={contractForm.workEndTime?.split(':')[1] || '00'}
+                      onChange={(e) => {
+                        const hours = contractForm.workEndTime?.split(':')[0] || '18';
+                        setContractForm({ workEndTime: `${hours}:${e.target.value}` });
+                      }}
+                    >
+                      {['00', '30'].map((min) => (
+                        <option key={min} value={min}>
+                          {min}분
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
+
+                {/* 근무 시간 요약 */}
+                {contractForm.workStartTime && contractForm.workEndTime && (
+                  <motion.div
+                    className="p-4 rounded-2xl bg-primary/5 border border-primary/20"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <p className="text-body text-primary font-medium text-center">
+                      {contractForm.workStartTime} ~ {contractForm.workEndTime} 근무
+                    </p>
+                  </motion.div>
+                )}
               </div>
             </StepContainer>
           )}
