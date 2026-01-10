@@ -105,7 +105,8 @@ export default function CreateContract() {
           return (contractForm.monthlyWage || 0) > 0;
         }
       case 3:
-        return !!contractForm.startDate;
+        // 시작일 필수, 종료일은 noEndDate가 true이거나 endDate가 있으면 유효
+        return !!contractForm.startDate && (contractForm.noEndDate || !!contractForm.endDate);
       case 4:
         return (contractForm.workDays?.length || 0) > 0;
       case 5:
@@ -320,20 +321,68 @@ export default function CreateContract() {
           {currentStep === 3 && (
             <StepContainer key="step-3" stepKey={3}>
               <StepQuestion
-                question="근무 시작일은 언제인가요?"
+                question="근무 기간을 알려주세요"
                 className="mb-8"
               />
-              <div className="relative">
-                <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  variant="toss"
-                  inputSize="xl"
-                  type="date"
-                  value={contractForm.startDate || ''}
-                  onChange={(e) => setContractForm({ startDate: e.target.value })}
-                  className="pl-14"
-                  autoFocus
-                />
+              <div className="space-y-4">
+                <div>
+                  <p className="text-caption text-muted-foreground mb-2">근무 시작일</p>
+                  <div className="relative">
+                    <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input
+                      variant="toss"
+                      inputSize="lg"
+                      type="date"
+                      value={contractForm.startDate || ''}
+                      onChange={(e) => setContractForm({ startDate: e.target.value })}
+                      className="pl-14"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                
+                {/* 계약종료일 없음 체크박스 */}
+                <div className="flex items-center gap-3 py-2">
+                  <Checkbox
+                    id="noEndDate"
+                    checked={contractForm.noEndDate || false}
+                    onCheckedChange={(checked) => 
+                      setContractForm({ 
+                        noEndDate: checked === true,
+                        endDate: checked === true ? undefined : contractForm.endDate 
+                      })
+                    }
+                  />
+                  <label 
+                    htmlFor="noEndDate" 
+                    className="text-body font-medium text-foreground cursor-pointer"
+                  >
+                    계약종료일 없음 (무기계약)
+                  </label>
+                </div>
+                
+                {/* 계약종료일 입력 */}
+                {!contractForm.noEndDate && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                  >
+                    <p className="text-caption text-muted-foreground mb-2">계약 종료일</p>
+                    <div className="relative">
+                      <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        variant="toss"
+                        inputSize="lg"
+                        type="date"
+                        value={contractForm.endDate || ''}
+                        onChange={(e) => setContractForm({ endDate: e.target.value })}
+                        className="pl-14"
+                        min={contractForm.startDate}
+                      />
+                    </div>
+                  </motion.div>
+                )}
               </div>
             </StepContainer>
           )}

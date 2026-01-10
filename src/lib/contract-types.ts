@@ -8,6 +8,8 @@ export interface ContractData {
   hourlyWage: number;
   monthlyWage?: number;
   startDate: string;
+  endDate?: string;
+  noEndDate?: boolean;
   workDays: string[];
   workStartTime: string;
   workEndTime: string;
