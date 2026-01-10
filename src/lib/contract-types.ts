@@ -16,6 +16,8 @@ export interface ContractData {
   workEndTime: string;
   workLocation: string;
   paymentDay?: number;
+  paymentMonth?: 'current' | 'next';
+  paymentEndOfMonth?: boolean;
   jobDescription?: string;
   status: 'draft' | 'pending' | 'signed' | 'completed';
   createdAt?: string;
