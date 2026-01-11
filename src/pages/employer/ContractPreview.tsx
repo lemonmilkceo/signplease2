@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
@@ -24,10 +24,12 @@ import {
   Loader2,
   Coffee,
   FileCheck,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getContract, signContractAsEmployer, Contract } from "@/lib/contract-api";
 import { supabase } from "@/integrations/supabase/client";
+import { parseWorkTime, calculateMonthlyWageBreakdown, calculateWeeklyHolidayPay } from "@/lib/wage-utils";
 
 export default function ContractPreview() {
   const navigate = useNavigate();
@@ -164,6 +166,14 @@ export default function ContractPreview() {
         isComprehensiveWage: true,
         businessSize: contractForm.businessSize, // 5인 미만/이상
         comprehensiveWageDetails: contractForm.comprehensiveWageDetails, // 포괄임금 수당 세부
+        // 주휴수당 계산 정보 추가
+        wageBreakdown: wageBreakdown ? {
+          baseWage: wageBreakdown.baseWage,
+          weeklyHolidayPay: wageBreakdown.weeklyHolidayPay,
+          totalWage: wageBreakdown.totalWage,
+          weeklyWorkHours: wageBreakdown.weeklyWorkHours,
+          isWeeklyHolidayEligible: wageBreakdown.isWeeklyHolidayEligible,
+        } : null,
       };
 
       const { data, error } = await supabase.functions.invoke('contract-legal-advice', {
@@ -216,6 +226,24 @@ export default function ContractPreview() {
     }
     return startDate;
   };
+
+  // 주휴수당 및 임금 상세 계산
+  const wageBreakdown = useMemo(() => {
+    if (!contract) return null;
+    
+    const dailyWorkHours = parseWorkTime(
+      contract.work_start_time,
+      contract.work_end_time,
+      contractForm.breakTimeMinutes || 0
+    );
+    const workDaysPerWeek = contractForm.workDaysPerWeek || contract.work_days?.length || 5;
+    
+    return calculateMonthlyWageBreakdown(
+      contract.hourly_wage,
+      workDaysPerWeek,
+      dailyWorkHours
+    );
+  }, [contract, contractForm.breakTimeMinutes, contractForm.workDaysPerWeek]);
 
   if (isLoading) {
     return (
@@ -326,7 +354,7 @@ export default function ContractPreview() {
               </div>
             </div>
 
-            {/* 임금 */}
+            {/* 임금 상세 */}
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
                 <Wallet className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -335,10 +363,46 @@ export default function ContractPreview() {
                 <p className="text-caption text-muted-foreground mb-1">임금</p>
                 <p className="text-body-lg font-semibold text-foreground">
                   시급 {contract.hourly_wage.toLocaleString()}원
-                  {contractForm.includeWeeklyHolidayPay && (
-                    <span className="text-caption text-primary ml-2">(주휴수당 포함)</span>
-                  )}
                 </p>
+                
+                {/* 주휴수당 자동 계산 표시 */}
+                {wageBreakdown && (
+                  <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 space-y-2">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Info className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <p className="text-caption font-medium text-amber-700 dark:text-amber-300">
+                        월 예상 급여 내역 (주 {wageBreakdown.weeklyWorkHours}시간 기준)
+                      </p>
+                    </div>
+                    <div className="flex justify-between text-caption">
+                      <span className="text-amber-600/80 dark:text-amber-400/80">기본급</span>
+                      <span className="font-medium text-amber-700 dark:text-amber-300">
+                        {wageBreakdown.baseWage.toLocaleString()}원
+                      </span>
+                    </div>
+                    {wageBreakdown.isWeeklyHolidayEligible ? (
+                      <div className="flex justify-between text-caption">
+                        <span className="text-amber-600/80 dark:text-amber-400/80">주휴수당</span>
+                        <span className="font-medium text-amber-700 dark:text-amber-300">
+                          {wageBreakdown.weeklyHolidayPay.toLocaleString()}원
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between text-caption">
+                        <span className="text-amber-600/80 dark:text-amber-400/80">주휴수당</span>
+                        <span className="text-muted-foreground">
+                          미발생 (주 15시간 미만)
+                        </span>
+                      </div>
+                    )}
+                    <div className="pt-2 border-t border-amber-200 dark:border-amber-700 flex justify-between text-body">
+                      <span className="font-medium text-amber-700 dark:text-amber-300">월 합계</span>
+                      <span className="font-bold text-amber-800 dark:text-amber-200">
+                        {wageBreakdown.totalWage.toLocaleString()}원
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
