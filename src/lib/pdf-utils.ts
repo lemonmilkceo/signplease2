@@ -69,8 +69,17 @@ const createContractHTML = (data: ContractPDFData): string => {
   const today = new Date();
   const todayStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
 
+  // 서명이 완료되지 않았으면 워터마크 표시
+  const needsSignature = !data.employerSignature || !data.workerSignature;
+  const watermarkHTML = needsSignature ? `
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 80px; font-weight: bold; color: rgba(255, 0, 0, 0.15); white-space: nowrap; pointer-events: none; z-index: 1000;">
+      싸인해주세요
+    </div>
+  ` : '';
+
   return `
-    <div style="font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; padding: 20px; max-width: 700px; margin: 0 auto; color: #1a1a1a; font-size: 14px; line-height: 1.6;">
+    <div style="font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; padding: 20px; max-width: 700px; margin: 0 auto; color: #1a1a1a; font-size: 14px; line-height: 1.6; position: relative;">
+      ${watermarkHTML}
       <h1 style="text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 15px;">
         표준 근로계약서
       </h1>
