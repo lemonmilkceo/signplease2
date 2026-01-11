@@ -91,7 +91,7 @@ export default function WorkerContractView() {
         workEndTime: contract.work_end_time,
         workDays: contract.work_days,
         workLocation: contract.work_location,
-        businessName: (contract as any).business_name || undefined,
+        businessName: contract.business_name || undefined,
         jobDescription: contract.job_description || undefined,
         employerSignature: contract.employer_signature,
         workerSignature: contract.worker_signature,
@@ -300,10 +300,10 @@ export default function WorkerContractView() {
                   <p className="text-caption text-muted-foreground">근무 장소</p>
                   <HelpButton term="근무 장소" context="근로계약서의 근무 장소 항목" />
                 </div>
-                {(contract as any).business_name && (
-                  <p className="text-body font-semibold text-foreground">{(contract as any).business_name}</p>
+                {contract.business_name && (
+                  <p className="text-body font-semibold text-foreground">{contract.business_name}</p>
                 )}
-                <p className={`text-body ${(contract as any).business_name ? 'text-muted-foreground' : 'font-medium text-foreground'}`}>
+                <p className={`text-body ${contract.business_name ? 'text-muted-foreground' : 'font-medium text-foreground'}`}>
                   {contract.work_location}
                 </p>
               </div>

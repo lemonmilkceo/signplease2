@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       contracts: {
         Row: {
+          business_name: string | null
           contract_content: string | null
           created_at: string
           employer_id: string
@@ -37,6 +38,7 @@ export type Database = {
           worker_signature: string | null
         }
         Insert: {
+          business_name?: string | null
           contract_content?: string | null
           created_at?: string
           employer_id: string
@@ -58,6 +60,7 @@ export type Database = {
           worker_signature?: string | null
         }
         Update: {
+          business_name?: string | null
           contract_content?: string | null
           created_at?: string
           employer_id?: string

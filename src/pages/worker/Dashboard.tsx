@@ -140,10 +140,10 @@ export default function WorkerDashboard() {
                           {getStatusBadge(contract.status)}
                         </div>
                         <div className="space-y-1">
-                          {(contract as any).business_name && (
+                          {contract.business_name && (
                             <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
                               <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
-                              <span className="truncate">{(contract as any).business_name}</span>
+                              <span className="truncate">{contract.business_name}</span>
                             </div>
                           )}
                           <div className="flex items-center gap-3 text-caption text-muted-foreground">
@@ -201,10 +201,10 @@ export default function WorkerDashboard() {
                           {getStatusBadge(contract.status)}
                         </div>
                         <div className="space-y-1">
-                          {(contract as any).business_name && (
+                          {contract.business_name && (
                             <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
                               <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
-                              <span className="truncate">{(contract as any).business_name}</span>
+                              <span className="truncate">{contract.business_name}</span>
                             </div>
                           )}
                           <div className="flex items-center gap-3 text-caption text-muted-foreground">

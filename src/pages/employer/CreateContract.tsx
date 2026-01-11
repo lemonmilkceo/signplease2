@@ -81,6 +81,7 @@ export default function CreateContract() {
       workStartTime: contractForm.workStartTime || '09:00',
       workEndTime: contractForm.workEndTime || '18:00',
       workLocation: contractForm.workLocation || '',
+      businessName: contractForm.businessName,
       jobDescription: contractForm.jobDescription,
     };
 

@@ -8,6 +8,7 @@ export interface ContractInput {
   workStartTime: string;
   workEndTime: string;
   workLocation: string;
+  businessName?: string;
   jobDescription?: string;
   employerName: string;
 }
@@ -24,6 +25,7 @@ export interface Contract {
   work_start_time: string;
   work_end_time: string;
   work_location: string;
+  business_name: string | null;
   job_description: string | null;
   status: 'draft' | 'pending' | 'signed' | 'completed';
   employer_signature: string | null;
@@ -65,6 +67,7 @@ export async function createContract(
       work_start_time: data.workStartTime,
       work_end_time: data.workEndTime,
       work_location: data.workLocation,
+      business_name: data.businessName || null,
       job_description: data.jobDescription || null,
       contract_content: contractContent,
       status: 'draft',
