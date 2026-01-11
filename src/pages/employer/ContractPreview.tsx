@@ -372,10 +372,13 @@ export default function ContractPreview() {
                 <p className="text-caption text-muted-foreground mb-1">임금</p>
                 <p className="text-body-lg font-semibold text-foreground">
                   시급 {contract.hourly_wage.toLocaleString()}원
+                  {contractForm.includeWeeklyHolidayPay && (
+                    <span className="text-caption text-muted-foreground ml-1">(주휴수당 포함)</span>
+                  )}
                 </p>
                 
-                {/* 주휴수당 자동 계산 표시 */}
-                {wageBreakdown && (
+                {/* 주휴수당 자동 계산 표시 - 주휴수당 미포함 시에만 별도 계산 */}
+                {wageBreakdown && !contractForm.includeWeeklyHolidayPay && (
                   <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 space-y-2">
                     <div className="flex items-center gap-1.5 mb-2">
                       <Info className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
@@ -408,6 +411,24 @@ export default function ContractPreview() {
                       <span className="font-medium text-amber-700 dark:text-amber-300">월 합계</span>
                       <span className="font-bold text-amber-800 dark:text-amber-200">
                         {wageBreakdown.totalWage.toLocaleString()}원
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 주휴수당 포함 시급인 경우 안내 */}
+                {wageBreakdown && contractForm.includeWeeklyHolidayPay && (
+                  <div className="mt-3 p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 space-y-2">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Info className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                      <p className="text-caption font-medium text-green-700 dark:text-green-300">
+                        주휴수당이 시급에 포함되어 있습니다
+                      </p>
+                    </div>
+                    <div className="flex justify-between text-caption">
+                      <span className="text-green-600/80 dark:text-green-400/80">월 예상 급여 (주 {wageBreakdown.weeklyWorkHours}시간 기준)</span>
+                      <span className="font-bold text-green-700 dark:text-green-300">
+                        {Math.round(contract.hourly_wage * wageBreakdown.weeklyWorkHours * 4.345).toLocaleString()}원
                       </span>
                     </div>
                   </div>
@@ -455,8 +476,8 @@ export default function ContractPreview() {
                 본 계약서에는 아래 명시된 수당이 포함되어 있습니다.
               </p>
               
-              {/* 기본급/주휴수당 분리 명시 (모든 사업장) */}
-              {wageBreakdown && (
+              {/* 기본급/주휴수당 분리 명시 (주휴수당 미포함 시에만) */}
+              {wageBreakdown && !contractForm.includeWeeklyHolidayPay && (
                 <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
                   <p className="text-caption font-medium text-blue-700 dark:text-blue-300">임금 구성 내역</p>
                   <div className="flex justify-between text-caption">
@@ -473,6 +494,22 @@ export default function ContractPreview() {
                         : '해당없음 (주 15시간 미만)'}
                     </span>
                   </div>
+                </div>
+              )}
+              
+              {/* 주휴수당 포함 시급인 경우 안내 */}
+              {contractForm.includeWeeklyHolidayPay && (
+                <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
+                  <p className="text-caption font-medium text-blue-700 dark:text-blue-300">임금 구성 내역</p>
+                  <div className="flex justify-between text-caption">
+                    <span className="text-blue-600/80 dark:text-blue-400/80">시급 (주휴수당 포함)</span>
+                    <span className="font-medium text-blue-700 dark:text-blue-300">
+                      {contract.hourly_wage.toLocaleString()}원
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-600/70 dark:text-blue-400/70">
+                    ※ 주휴수당이 시급에 이미 포함되어 있어 별도 계산하지 않습니다.
+                  </p>
                 </div>
               )}
               
