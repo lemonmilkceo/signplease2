@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   AlertCircle,
+  Zap,
   Edit,
   Download,
 } from "lucide-react";
@@ -36,6 +37,7 @@ import { getContract, signContractAsEmployer, Contract } from "@/lib/contract-ap
 import { supabase } from "@/integrations/supabase/client";
 import { parseWorkTime, calculateMonthlyWageBreakdown, calculateWeeklyHolidayPay } from "@/lib/wage-utils";
 import { generateContractPDF, ContractPDFData } from "@/lib/pdf-utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function ContractPreview() {
   const navigate = useNavigate();
@@ -645,12 +647,23 @@ export default function ContractPreview() {
               </div>
               <div className="flex-1 text-left">
                 <p className="text-body font-medium text-emerald-700 dark:text-emerald-300">
-                  무료 계약서 검토받기
+                  AI에게 무료로 계약서 검토받기
                 </p>
                 <p className="text-caption text-emerald-600/70 dark:text-emerald-400/70">
                   근로기준법 준수 여부를 확인해드려요
                 </p>
               </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-800/50">
+                    <Zap className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">3초</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="bg-emerald-600 text-white border-0">
+                  <p>3초면 확인 완료! ⚡</p>
+                </TooltipContent>
+              </Tooltip>
               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             </motion.button>
           </div>
