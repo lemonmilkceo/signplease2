@@ -390,10 +390,10 @@ export default function CreateContract() {
                               htmlFor="weeklyHolidayPay" 
                               className="text-body font-semibold text-blue-700 dark:text-blue-300 cursor-pointer"
                             >
-                              💡 주휴수당이 시급에 포함되어 있어요
+                              ☑️ 위 시급에 주휴수당이 포함되어 있다면 체크해주세요
                             </label>
                             <p className="text-sm text-blue-600/80 dark:text-blue-400/80 mt-1">
-                              주휴수당이란? 일주일에 15시간 이상 일하면 받는 유급휴일 수당이에요
+                              주휴수당이란? 일주일에 15시간 이상 근무하는 직원에게 지급하는 유급휴일 수당이에요
                             </p>
                             {contractForm.includeWeeklyHolidayPay && (
                               <motion.p
