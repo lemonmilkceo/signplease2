@@ -32,6 +32,37 @@ export default function CreateContract() {
     }
   }, [user, isDemo, authLoading, navigate]);
 
+  // 5인 이상 사업장: Step 10 진입 시 포괄임금 수당 기본값 자동 계산
+  useEffect(() => {
+    if (currentStep === 10 && contractForm.businessSize === 'over5') {
+      const hourlyWage = contractForm.hourlyWage || MINIMUM_WAGE_2026;
+      const dailyWorkHours = parseWorkTime(
+        contractForm.workStartTime || '09:00',
+        contractForm.workEndTime || '18:00',
+        contractForm.breakTimeMinutes || 0
+      );
+      
+      // 기본값이 없을 때만 자동 계산
+      if (!contractForm.comprehensiveWageDetails?.overtimeAllowance &&
+          !contractForm.comprehensiveWageDetails?.holidayAllowance &&
+          !contractForm.comprehensiveWageDetails?.annualLeaveAllowance) {
+        
+        // 기본 예상값 설정
+        const DEFAULT_OVERTIME_HOURS = 10; // 월 10시간 연장근로
+        const DEFAULT_HOLIDAY_HOURS = 8;   // 월 8시간 휴일근로 (1일)
+        const DEFAULT_ANNUAL_LEAVE_DAYS = 5; // 연간 5일 미사용 연차
+        
+        setContractForm({
+          comprehensiveWageDetails: {
+            overtimeAllowance: Math.round(hourlyWage * 1.5 * DEFAULT_OVERTIME_HOURS),
+            holidayAllowance: Math.round(hourlyWage * 1.5 * DEFAULT_HOLIDAY_HOURS),
+            annualLeaveAllowance: Math.round(hourlyWage * dailyWorkHours * DEFAULT_ANNUAL_LEAVE_DAYS),
+          }
+        });
+      }
+    }
+  }, [currentStep, contractForm.businessSize]);
+
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
@@ -629,8 +660,22 @@ export default function CreateContract() {
                       />
                     </div>
                     
-                    <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                      <p className="text-caption text-blue-700 dark:text-blue-300"><Info className="w-4 h-4 inline mr-1" />포괄임금 계약의 법적 효력을 위해 최소 1개 이상의 수당 항목을 입력해주세요.</p>
+                    {/* 안내 메시지 */}
+                    <div className="space-y-3">
+                      <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                        <p className="text-caption text-amber-700 dark:text-amber-300 font-medium mb-1">
+                          ⚠️ 추가 수당 발생 가능
+                        </p>
+                        <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
+                          위 금액은 예상 기준이며, 실제 연장/휴일근로 시간이 증가하면 추가 수당을 지급해야 합니다.
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                        <p className="text-caption text-blue-700 dark:text-blue-300">
+                          <Info className="w-4 h-4 inline mr-1" />
+                          기본 예상값이 자동 입력되었어요. 필요시 계산기로 수정할 수 있어요.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </>
