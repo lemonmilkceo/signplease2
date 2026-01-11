@@ -32,7 +32,7 @@ export default function CreateContract() {
     }
   }, [user, isDemo, authLoading, navigate]);
 
-  // 5인 이상 사업장: Step 10 진입 시 포괄임금 수당 기본값 자동 계산
+  // 5인 이상 사업장: Step 10 진입 시 또는 시급/근무시간 변경 시 포괄임금 수당 자동 계산
   useEffect(() => {
     if (currentStep === 10 && contractForm.businessSize === 'over5') {
       const hourlyWage = contractForm.hourlyWage || MINIMUM_WAGE_2026;
@@ -42,21 +42,16 @@ export default function CreateContract() {
         contractForm.breakTimeMinutes || 0
       );
       
-      // 기본값이 없을 때만 자동 계산 (단위당 금액)
-      if (!contractForm.comprehensiveWageDetails?.overtimePerHour &&
-          !contractForm.comprehensiveWageDetails?.holidayPerDay &&
-          !contractForm.comprehensiveWageDetails?.annualLeavePerDay) {
-        
-        setContractForm({
-          comprehensiveWageDetails: {
-            overtimePerHour: Math.round(hourlyWage * 1.5),
-            holidayPerDay: Math.round(hourlyWage * 1.5 * dailyWorkHours),
-            annualLeavePerDay: Math.round(hourlyWage * dailyWorkHours),
-          }
-        });
-      }
+      // 시급이나 근무시간이 변경되면 항상 재계산
+      setContractForm({
+        comprehensiveWageDetails: {
+          overtimePerHour: Math.round(hourlyWage * 1.5),
+          holidayPerDay: Math.round(hourlyWage * 1.5 * dailyWorkHours),
+          annualLeavePerDay: Math.round(hourlyWage * dailyWorkHours),
+        }
+      });
     }
-  }, [currentStep, contractForm.businessSize]);
+  }, [currentStep, contractForm.businessSize, contractForm.hourlyWage, contractForm.workStartTime, contractForm.workEndTime, contractForm.breakTimeMinutes]);
 
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
