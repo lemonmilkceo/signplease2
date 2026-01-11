@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      contract_invitations: {
+        Row: {
+          accepted_at: string | null
+          contract_id: string
+          id: string
+          invited_at: string
+          phone: string
+          status: string
+          worker_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          contract_id: string
+          id?: string
+          invited_at?: string
+          phone: string
+          status?: string
+          worker_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          contract_id?: string
+          id?: string
+          invited_at?: string
+          phone?: string
+          status?: string
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_invitations_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           business_name: string | null
@@ -89,6 +127,7 @@ export type Database = {
           email: string | null
           id: string
           name: string | null
+          phone: string | null
           role: string
           updated_at: string
           user_id: string
@@ -98,6 +137,7 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string | null
+          phone?: string | null
           role?: string
           updated_at?: string
           user_id: string
@@ -107,6 +147,7 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string | null
+          phone?: string | null
           role?: string
           updated_at?: string
           user_id?: string
