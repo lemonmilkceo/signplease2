@@ -29,11 +29,13 @@ import {
   CheckCircle2,
   AlertCircle,
   Edit,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getContract, signContractAsEmployer, Contract } from "@/lib/contract-api";
 import { supabase } from "@/integrations/supabase/client";
 import { parseWorkTime, calculateMonthlyWageBreakdown, calculateWeeklyHolidayPay } from "@/lib/wage-utils";
+import { generateContractPDF, ContractPDFData } from "@/lib/pdf-utils";
 
 export default function ContractPreview() {
   const navigate = useNavigate();
@@ -53,6 +55,7 @@ export default function ContractPreview() {
     advice: string;
   } | null>(null);
   const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   useEffect(() => {
     const fetchContract = async () => {
@@ -253,6 +256,43 @@ export default function ContractPreview() {
       dailyWorkHours
     );
   }, [contract, contractForm.breakTimeMinutes, contractForm.workDaysPerWeek]);
+
+  const handleDownloadPDF = async () => {
+    if (!contract) return;
+    
+    setIsDownloadingPDF(true);
+    try {
+      const pdfData: ContractPDFData = {
+        employerName: contract.employer_name,
+        workerName: contract.worker_name,
+        hourlyWage: contract.hourly_wage,
+        monthlyWage: contractForm.monthlyWage,
+        wageType: contractForm.wageType,
+        startDate: contract.start_date,
+        endDate: contractForm.endDate,
+        workStartTime: contract.work_start_time,
+        workEndTime: contract.work_end_time,
+        workDays: contract.work_days,
+        workLocation: contract.work_location,
+        jobDescription: contractForm.jobDescription || contract.job_description || undefined,
+        breakTimeMinutes: contractForm.breakTimeMinutes,
+        employerSignature: contract.employer_signature,
+        workerSignature: contract.worker_signature,
+        signedAt: contract.signed_at,
+        includeWeeklyHolidayPay: contractForm.includeWeeklyHolidayPay,
+        wageBreakdown: wageBreakdown,
+      };
+      
+      const filename = `근로계약서_${contract.worker_name}_${contract.start_date}.pdf`;
+      await generateContractPDF(pdfData, filename);
+      toast.success('PDF가 다운로드되었습니다');
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast.error('PDF 생성에 실패했습니다');
+    } finally {
+      setIsDownloadingPDF(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -668,6 +708,32 @@ export default function ContractPreview() {
                 <Check className="w-4 h-4" />
               </div>
               <span className="text-body font-medium">사업주 서명 완료</span>
+            </motion.div>
+            {/* PDF Download Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Button
+                variant="outline"
+                size="full"
+                onClick={handleDownloadPDF}
+                disabled={isDownloadingPDF}
+                className="gap-2"
+              >
+                {isDownloadingPDF ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    PDF 생성 중...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    PDF 다운로드
+                  </>
+                )}
+              </Button>
             </motion.div>
           </>
         )}

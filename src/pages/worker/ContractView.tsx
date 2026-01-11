@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getContract, signContractAsWorker, explainTerm, Contract } from "@/lib/contract-api";
 import { SignatureCanvas } from "@/components/ui/signature-canvas";
 import { parseWorkTime, calculateMonthlyWageBreakdown } from "@/lib/wage-utils";
+import { generateContractPDF, ContractPDFData } from "@/lib/pdf-utils";
 import {
   ArrowLeft,
   Calendar,
@@ -24,6 +25,7 @@ import {
   FileText,
   HelpCircle,
   X,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +40,7 @@ export default function WorkerContractView() {
   const [helpTerm, setHelpTerm] = useState<string | null>(null);
   const [helpExplanation, setHelpExplanation] = useState<string | null>(null);
   const [loadingHelp, setLoadingHelp] = useState(false);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   useEffect(() => {
     async function fetchContract() {
@@ -73,6 +76,38 @@ export default function WorkerContractView() {
       dailyWorkHours
     );
   }, [contract]);
+
+  const handleDownloadPDF = async () => {
+    if (!contract) return;
+    
+    setIsDownloadingPDF(true);
+    try {
+      const pdfData: ContractPDFData = {
+        employerName: contract.employer_name,
+        workerName: contract.worker_name,
+        hourlyWage: contract.hourly_wage,
+        startDate: contract.start_date,
+        workStartTime: contract.work_start_time,
+        workEndTime: contract.work_end_time,
+        workDays: contract.work_days,
+        workLocation: contract.work_location,
+        jobDescription: contract.job_description || undefined,
+        employerSignature: contract.employer_signature,
+        workerSignature: contract.worker_signature,
+        signedAt: contract.signed_at,
+        wageBreakdown: wageBreakdown,
+      };
+      
+      const filename = `근로계약서_${contract.worker_name}_${contract.start_date}.pdf`;
+      await generateContractPDF(pdfData, filename);
+      toast.success('PDF가 다운로드되었습니다');
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast.error('PDF 생성에 실패했습니다');
+    } finally {
+      setIsDownloadingPDF(false);
+    }
+  };
 
   const handleHelpClick = async (term: string, context: string) => {
     if (helpTerm === term) {
@@ -422,6 +457,25 @@ export default function WorkerContractView() {
             <p className="text-caption text-muted-foreground text-center">
               이 계약서는 {contract.signed_at ? new Date(contract.signed_at).toLocaleDateString('ko-KR') : ''}에 서명되었습니다
             </p>
+            <Button
+              variant="outline"
+              size="full"
+              onClick={handleDownloadPDF}
+              disabled={isDownloadingPDF}
+              className="gap-2 mt-2"
+            >
+              {isDownloadingPDF ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  PDF 생성 중...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  PDF 다운로드
+                </>
+              )}
+            </Button>
           </motion.div>
         ) : (
           <Button
