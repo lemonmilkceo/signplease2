@@ -12,6 +12,7 @@ export interface ContractPDFData {
   workEndTime: string;
   workDays: string[];
   workLocation: string;
+  businessName?: string;
   jobDescription?: string;
   breakTimeMinutes?: number;
   employerSignature?: string | null;
@@ -102,7 +103,9 @@ const createContractHTML = (data: ContractPDFData): string => {
         <h2 style="font-size: 16px; font-weight: bold; color: #333; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #ddd;">
           제2조 (근무장소)
         </h2>
-        <p style="padding-left: 15px;">${data.workLocation}</p>
+        <p style="padding-left: 15px;">
+          ${data.businessName ? `<strong>${data.businessName}</strong><br/>` : ''}${data.workLocation}
+        </p>
       </div>
 
       <div style="margin-bottom: 20px;">

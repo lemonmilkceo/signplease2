@@ -274,6 +274,7 @@ export default function ContractPreview() {
         workEndTime: contract.work_end_time,
         workDays: contract.work_days,
         workLocation: contract.work_location,
+        businessName: contractForm.businessName,
         jobDescription: contractForm.jobDescription || contract.job_description || undefined,
         breakTimeMinutes: contractForm.breakTimeMinutes,
         employerSignature: contract.employer_signature,
@@ -399,7 +400,12 @@ export default function ContractPreview() {
               </div>
               <div className="flex-1">
                 <p className="text-caption text-muted-foreground mb-1">근무 장소</p>
-                <p className="text-body font-medium text-foreground">{contract.work_location}</p>
+                {contractForm.businessName && (
+                  <p className="text-body font-semibold text-foreground">{contractForm.businessName}</p>
+                )}
+                <p className={`text-body ${contractForm.businessName ? 'text-muted-foreground' : 'font-medium text-foreground'}`}>
+                  {contract.work_location}
+                </p>
               </div>
             </div>
 
