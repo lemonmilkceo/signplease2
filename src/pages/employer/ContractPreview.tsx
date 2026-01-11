@@ -136,11 +136,18 @@ export default function ContractPreview() {
           text: `${contract.worker_name}님, 근로계약서가 도착했습니다.`,
           url: shareUrl,
         });
+        toast.success("계약서가 공유되었습니다!");
+        navigate('/employer');
       } catch (err) {
-        copyToClipboard(shareUrl);
+        // 사용자가 공유를 취소한 경우
+        if ((err as Error).name !== 'AbortError') {
+          copyToClipboard(shareUrl);
+          navigate('/employer');
+        }
       }
     } else {
       copyToClipboard(shareUrl);
+      navigate('/employer');
     }
   };
 
