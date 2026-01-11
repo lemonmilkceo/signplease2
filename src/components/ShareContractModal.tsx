@@ -181,15 +181,15 @@ export function ShareContractModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm mx-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-sm mx-auto max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-lg">계약서 공유</DialogTitle>
           <DialogDescription>
             근로자에게 계약서 서명 링크를 공유합니다.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2">
+        <div className="flex-1 overflow-y-auto space-y-3 pt-2">
           <div className="space-y-2">
             <Label htmlFor="phone">근로자 연락처</Label>
             <Input
@@ -205,34 +205,38 @@ export function ShareContractModal({
             </p>
           </div>
 
-          <div className="bg-muted/50 rounded-lg p-3">
+          <div className="bg-muted/50 rounded-lg p-2.5 max-h-24 overflow-y-auto">
             <p className="text-xs text-muted-foreground mb-1">공유될 메시지</p>
-            <p className="text-sm whitespace-pre-line">{shareMessage}</p>
+            <p className="text-xs whitespace-pre-line break-all">{shareMessage}</p>
           </div>
+        </div>
 
-          <div className="flex flex-col gap-2">
-            <Button
-              onClick={handleKakaoShare}
-              disabled={isLoading || !phone}
-              className="w-full bg-[#FEE500] hover:bg-[#FDD835] text-[#191919]"
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <MessageCircle className="w-4 h-4 mr-2" />
-              )}
-              카카오톡으로 공유
-            </Button>
+        <div className="flex-shrink-0 flex flex-col gap-2 pt-3 border-t">
+          <Button
+            onClick={handleKakaoShare}
+            disabled={isLoading || !phone}
+            className="w-full bg-[#FEE500] hover:bg-[#FDD835] text-[#191919]"
+            size="sm"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <MessageCircle className="w-4 h-4 mr-2" />
+            )}
+            카카오톡으로 공유
+          </Button>
 
+          <div className="flex gap-2">
             {typeof navigator !== "undefined" && navigator.share && (
               <Button
                 variant="secondary"
                 onClick={handleWebShare}
                 disabled={isLoading || !phone}
-                className="w-full"
+                className="flex-1"
+                size="sm"
               >
-                <Share2 className="w-4 h-4 mr-2" />
-                다른 앱으로 공유
+                <Share2 className="w-4 h-4 mr-1.5" />
+                다른 앱
               </Button>
             )}
             
@@ -240,14 +244,15 @@ export function ShareContractModal({
               variant="outline"
               onClick={handleCopyLink}
               disabled={isLoading}
-              className="w-full"
+              className="flex-1"
+              size="sm"
             >
               {copied ? (
-                <Check className="w-4 h-4 mr-2" />
+                <Check className="w-4 h-4 mr-1.5" />
               ) : (
-                <Copy className="w-4 h-4 mr-2" />
+                <Copy className="w-4 h-4 mr-1.5" />
               )}
-              {copied ? "복사됨" : "메시지 복사"}
+              {copied ? "복사됨" : "복사"}
             </Button>
           </div>
         </div>
