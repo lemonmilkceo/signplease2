@@ -38,6 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseWorkTime, calculateMonthlyWageBreakdown, calculateWeeklyHolidayPay } from "@/lib/wage-utils";
 import { generateContractPDF, ContractPDFData } from "@/lib/pdf-utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ShareContractModal } from "@/components/ShareContractModal";
 
 export default function ContractPreview() {
   const navigate = useNavigate();
@@ -58,6 +59,7 @@ export default function ContractPreview() {
   } | null>(null);
   const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchContract = async () => {
@@ -126,36 +128,9 @@ export default function ContractPreview() {
     }
   };
 
-  const handleShare = async () => {
+  const handleShare = () => {
     if (!contract) return;
-    
-    const shareUrl = `${window.location.origin}/worker/contract/${contract.id}`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: '근로계약서',
-          text: `${contract.worker_name}님, 근로계약서가 도착했습니다.`,
-          url: shareUrl,
-        });
-        toast.success("계약서가 공유되었습니다!");
-        navigate('/employer');
-      } catch (err) {
-        // 사용자가 공유를 취소한 경우
-        if ((err as Error).name !== 'AbortError') {
-          copyToClipboard(shareUrl);
-          navigate('/employer');
-        }
-      }
-    } else {
-      copyToClipboard(shareUrl);
-      navigate('/employer');
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("링크가 복사되었습니다!");
+    setIsShareModalOpen(true);
   };
 
   const handleGetLegalAdvice = async () => {
@@ -918,6 +893,16 @@ export default function ContractPreview() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Share Contract Modal */}
+      {contract && (
+        <ShareContractModal
+          open={isShareModalOpen}
+          onOpenChange={setIsShareModalOpen}
+          contractId={contract.id}
+          workerName={contract.worker_name}
+        />
+      )}
     </div>
   );
 }
