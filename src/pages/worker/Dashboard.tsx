@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getContract, Contract } from "@/lib/contract-api";
-import { FileText, ChevronRight, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import { FileText, ChevronRight, Clock, CheckCircle2, Loader2, MapPin, Building2, Wallet } from "lucide-react";
 import { CardSlide } from "@/components/ui/card-slide";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -65,14 +65,14 @@ export default function WorkerDashboard() {
     switch (status) {
       case 'pending':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-warning/10 text-warning">
             <Clock className="w-3 h-3" />
             서명 필요
           </span>
         );
       case 'completed':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-success/10 text-success">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-success/10 text-success">
             <CheckCircle2 className="w-3 h-3" />
             완료
           </span>
@@ -126,24 +126,37 @@ export default function WorkerDashboard() {
                 >
                   <CardSlide
                     onClick={() => navigate(`/worker/contract/${contract.id}`)}
-                    className="flex items-center justify-between"
+                    className="p-4"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center flex-shrink-0">
                         <FileText className="w-6 h-6 text-warning" />
                       </div>
-                      <div>
-                        <p className="text-body font-semibold text-foreground">
-                          {contract.employer_name}
-                        </p>
-                        <p className="text-caption text-muted-foreground">
-                          시급 {contract.hourly_wage.toLocaleString()}원 · {contract.work_days.join(', ')}
-                        </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <p className="text-body font-semibold text-foreground truncate">
+                            {contract.employer_name}
+                          </p>
+                          {getStatusBadge(contract.status)}
+                        </div>
+                        <div className="space-y-1">
+                          {(contract as any).business_name && (
+                            <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
+                              <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">{(contract as any).business_name}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 text-caption text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Wallet className="w-3.5 h-3.5" />
+                              <span>시급 {contract.hourly_wage.toLocaleString()}원</span>
+                            </div>
+                            <span>·</span>
+                            <span>{contract.work_days.length > 3 ? `주 ${contract.work_days.length}일` : contract.work_days.join(', ')}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(contract.status)}
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
                     </div>
                   </CardSlide>
                 </motion.div>
@@ -174,24 +187,34 @@ export default function WorkerDashboard() {
                 >
                   <CardSlide
                     onClick={() => navigate(`/worker/contract/${contract.id}`)}
-                    className="flex items-center justify-between"
+                    className="p-4"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center flex-shrink-0">
                         <FileText className="w-6 h-6 text-success" />
                       </div>
-                      <div>
-                        <p className="text-body font-semibold text-foreground">
-                          {contract.employer_name}
-                        </p>
-                        <p className="text-caption text-muted-foreground">
-                          {contract.start_date} 시작
-                        </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <p className="text-body font-semibold text-foreground truncate">
+                            {contract.employer_name}
+                          </p>
+                          {getStatusBadge(contract.status)}
+                        </div>
+                        <div className="space-y-1">
+                          {(contract as any).business_name && (
+                            <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
+                              <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate">{(contract as any).business_name}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 text-caption text-muted-foreground">
+                            <span>{contract.start_date} 시작</span>
+                            <span>·</span>
+                            <span>{contract.work_start_time} ~ {contract.work_end_time}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(contract.status)}
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                      <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
                     </div>
                   </CardSlide>
                 </motion.div>
