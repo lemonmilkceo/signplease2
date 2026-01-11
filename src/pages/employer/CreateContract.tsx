@@ -8,13 +8,14 @@ import { useAppStore } from "@/lib/store";
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { StepContainer, StepQuestion } from "@/components/ui/step-container";
 import { AIGenerating } from "@/components/ui/loading";
-import { ArrowLeft, Calendar, Clock, Wallet, Banknote, Info, Sparkles, Coffee, Building2, Users } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Wallet, Banknote, Info, Sparkles, Coffee, Building2, Users, Search } from "lucide-react";
 import { WORK_DAYS_PER_WEEK, MINIMUM_WAGE_2026, MINIMUM_WAGE_WITH_HOLIDAY_2026, JOB_KEYWORDS, WageType, BusinessSize } from "@/lib/contract-types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateContractContent, createContract, ContractInput } from "@/lib/contract-api";
 import { toast } from "sonner";
 import { AllowanceCalculator } from "@/components/allowance-calculator";
 import { parseWorkTime } from "@/lib/wage-utils";
+import { useKakaoAddress } from "@/hooks/useKakaoAddress";
 
 const TOTAL_STEPS = 10;
 const BREAK_TIME_OPTIONS = [0, 30, 60, 90, 120];
@@ -23,6 +24,7 @@ export default function CreateContract() {
   const navigate = useNavigate();
   const { user, profile, isLoading: authLoading } = useAuth();
   const { isDemo, contractForm, setContractForm, addContract } = useAppStore();
+  const { openAddressSearch, isScriptLoaded } = useKakaoAddress();
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -659,7 +661,37 @@ export default function CreateContract() {
             <StepContainer key="step-8" stepKey={8}>
               <StepQuestion question="근무 장소는 어디인가요?" className="mb-8" />
               <div className="space-y-4">
-                <Input variant="toss" inputSize="xl" placeholder="근무지 주소를 입력해주세요" value={contractForm.workLocation || ''} onChange={(e) => setContractForm({ workLocation: e.target.value })} autoFocus />
+                <div className="relative">
+                  <Input 
+                    variant="toss" 
+                    inputSize="xl" 
+                    placeholder="근무지 주소를 입력해주세요" 
+                    value={contractForm.workLocation || ''} 
+                    onChange={(e) => setContractForm({ workLocation: e.target.value })} 
+                    onClick={() => {
+                      if (isScriptLoaded) {
+                        openAddressSearch((address) => {
+                          setContractForm({ workLocation: address });
+                        });
+                      }
+                    }}
+                    readOnly
+                    className="cursor-pointer pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isScriptLoaded) {
+                        openAddressSearch((address) => {
+                          setContractForm({ workLocation: address });
+                        });
+                      }
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Search className="w-5 h-5" />
+                  </button>
+                </div>
                 <Input variant="toss" inputSize="xl" placeholder="사업장명을 입력해주세요" value={contractForm.businessName || ''} onChange={(e) => setContractForm({ businessName: e.target.value })} />
               </div>
             </StepContainer>
