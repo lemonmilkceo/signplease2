@@ -608,144 +608,138 @@ export default function CreateContract() {
             </StepContainer>
           )}
 
-          {/* Step 10: 포괄임금 수당 (5인 이상) 또는 업무 내용 (5인 미만) */}
+          {/* Step 10: 업무 내용 및 수당 안내 */}
           {currentStep === 10 && (
             <StepContainer key="step-10" stepKey={10}>
-              {contractForm.businessSize === 'over5' ? (
-                <>
-                  <StepQuestion question="포괄임금 수당 항목을 입력해주세요" description="5인 이상 사업장은 각 수당 금액을 명시해야 법적 효력이 있어요" className="mb-6" />
-                  <div className="space-y-5">
-                    {/* 연장근로수당 */}
-                    <div>
-                      <p className="text-caption text-muted-foreground mb-2">연장근로수당 (월 예상)</p>
-                      <div className="relative">
-                        <Input variant="toss" inputSize="lg" type="number" placeholder="0" value={contractForm.comprehensiveWageDetails?.overtimeAllowance || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, overtimeAllowance: Number(e.target.value) || undefined } })} className="pr-12" />
-                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground text-body">원</span>
-                      </div>
-                      <AllowanceCalculator
-                        type="overtime"
-                        hourlyWage={contractForm.hourlyWage || MINIMUM_WAGE_2026}
-                        dailyWorkHours={parseWorkTime(contractForm.workStartTime || '09:00', contractForm.workEndTime || '18:00', contractForm.breakTimeMinutes || 0)}
-                        onCalculate={(amount) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, overtimeAllowance: amount } })}
-                      />
-                    </div>
-                    
-                    {/* 휴일근로수당 */}
-                    <div>
-                      <p className="text-caption text-muted-foreground mb-2">휴일근로수당 (월 예상)</p>
-                      <div className="relative">
-                        <Input variant="toss" inputSize="lg" type="number" placeholder="0" value={contractForm.comprehensiveWageDetails?.holidayAllowance || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, holidayAllowance: Number(e.target.value) || undefined } })} className="pr-12" />
-                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground text-body">원</span>
-                      </div>
-                      <AllowanceCalculator
-                        type="holiday"
-                        hourlyWage={contractForm.hourlyWage || MINIMUM_WAGE_2026}
-                        dailyWorkHours={parseWorkTime(contractForm.workStartTime || '09:00', contractForm.workEndTime || '18:00', contractForm.breakTimeMinutes || 0)}
-                        onCalculate={(amount) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, holidayAllowance: amount } })}
-                      />
-                    </div>
-                    
-                    {/* 연차유급휴가 수당 */}
-                    <div>
-                      <p className="text-caption text-muted-foreground mb-2">연차유급휴가 수당 (연간)</p>
-                      <div className="relative">
-                        <Input variant="toss" inputSize="lg" type="number" placeholder="0" value={contractForm.comprehensiveWageDetails?.annualLeaveAllowance || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, annualLeaveAllowance: Number(e.target.value) || undefined } })} className="pr-12" />
-                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground text-body">원</span>
-                      </div>
-                      <AllowanceCalculator
-                        type="annualLeave"
-                        hourlyWage={contractForm.hourlyWage || MINIMUM_WAGE_2026}
-                        dailyWorkHours={parseWorkTime(contractForm.workStartTime || '09:00', contractForm.workEndTime || '18:00', contractForm.breakTimeMinutes || 0)}
-                        onCalculate={(amount) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, annualLeaveAllowance: amount } })}
-                      />
-                    </div>
-                    
-                    {/* 안내 메시지 */}
-                    <div className="space-y-3">
-                      <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                        <p className="text-caption text-amber-700 dark:text-amber-300 font-medium mb-1">
-                          ⚠️ 추가 수당 발생 가능
-                        </p>
-                        <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
-                          위 금액은 예상 기준이며, 실제 연장/휴일근로 시간이 증가하면 추가 수당을 지급해야 합니다.
+              {/* 업무 내용 (공통) */}
+              <StepQuestion question="주요 업무 내용을 알려주세요" description="선택사항이에요" className="mb-6" />
+              <div className="flex flex-wrap gap-2 mb-6">
+                {JOB_KEYWORDS.map((keyword) => {
+                  const isSelected = contractForm.jobDescription?.includes(keyword);
+                  return (
+                    <motion.button key={keyword} className={`px-4 py-2 rounded-full text-caption font-medium transition-all ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`} onClick={() => { const current = contractForm.jobDescription || ''; const updated = isSelected ? current.split(', ').filter(k => k !== keyword).join(', ') : current ? `${current}, ${keyword}` : keyword; setContractForm({ jobDescription: updated }); }} whileTap={{ scale: 0.95 }}>{keyword}</motion.button>
+                  );
+                })}
+              </div>
+              <textarea className="w-full h-24 p-4 rounded-2xl border-2 border-border bg-background text-body focus:border-primary focus:outline-none transition-colors resize-none" placeholder="추가로 입력하고 싶은 업무 내용을 적어주세요" value={contractForm.jobDescription || ''} onChange={(e) => setContractForm({ jobDescription: e.target.value })} />
+              
+              {/* 수당 안내 (5인 이상/미만 공통 - 자동 계산) */}
+              {(() => {
+                const hourlyWage = contractForm.hourlyWage || MINIMUM_WAGE_2026;
+                const dailyWorkHours = parseWorkTime(
+                  contractForm.workStartTime || '09:00',
+                  contractForm.workEndTime || '18:00',
+                  contractForm.breakTimeMinutes || 0
+                );
+                const DEFAULT_OVERTIME_HOURS = 10;
+                const DEFAULT_HOLIDAY_DAYS = 1;
+                const DEFAULT_ANNUAL_LEAVE_DAYS = 5;
+                
+                // 단위당 수당 계산
+                const overtimePerHour = Math.round(hourlyWage * 1.5);
+                const holidayPerDay = Math.round(hourlyWage * 1.5 * dailyWorkHours);
+                const annualLeavePerDay = Math.round(hourlyWage * dailyWorkHours);
+                
+                // 예상 총액 계산
+                const overtimeAllowance = overtimePerHour * DEFAULT_OVERTIME_HOURS;
+                const holidayAllowance = holidayPerDay * DEFAULT_HOLIDAY_DAYS;
+                const annualLeaveAllowance = annualLeavePerDay * DEFAULT_ANNUAL_LEAVE_DAYS;
+                
+                const isOver5 = contractForm.businessSize === 'over5';
+                
+                return (
+                  <div className="mt-6 space-y-4">
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <p className="text-caption font-medium text-blue-700 dark:text-blue-300">
+                          예상 수당 내역 {isOver5 ? '(5인 이상 사업장)' : '(5인 미만 사업장)'}
                         </p>
                       </div>
-                      <div className="p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                        <p className="text-caption text-blue-700 dark:text-blue-300">
-                          <Info className="w-4 h-4 inline mr-1" />
-                          기본 예상값이 자동 입력되었어요. 필요시 계산기로 수정할 수 있어요.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <StepQuestion question="주요 업무 내용을 알려주세요" description="선택사항이에요" className="mb-6" />
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {JOB_KEYWORDS.map((keyword) => {
-                      const isSelected = contractForm.jobDescription?.includes(keyword);
-                      return (
-                        <motion.button key={keyword} className={`px-4 py-2 rounded-full text-caption font-medium transition-all ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`} onClick={() => { const current = contractForm.jobDescription || ''; const updated = isSelected ? current.split(', ').filter(k => k !== keyword).join(', ') : current ? `${current}, ${keyword}` : keyword; setContractForm({ jobDescription: updated }); }} whileTap={{ scale: 0.95 }}>{keyword}</motion.button>
-                      );
-                    })}
-                  </div>
-                  <textarea className="w-full h-24 p-4 rounded-2xl border-2 border-border bg-background text-body focus:border-primary focus:outline-none transition-colors resize-none" placeholder="추가로 입력하고 싶은 업무 내용을 적어주세요" value={contractForm.jobDescription || ''} onChange={(e) => setContractForm({ jobDescription: e.target.value })} />
-                  
-                  {/* 5인 미만 사업장: 예상 수당 안내 */}
-                  {(() => {
-                    const hourlyWage = contractForm.hourlyWage || MINIMUM_WAGE_2026;
-                    const dailyWorkHours = parseWorkTime(
-                      contractForm.workStartTime || '09:00',
-                      contractForm.workEndTime || '18:00',
-                      contractForm.breakTimeMinutes || 0
-                    );
-                    const DEFAULT_OVERTIME_HOURS = 10;
-                    const DEFAULT_HOLIDAY_HOURS = 8;
-                    const DEFAULT_ANNUAL_LEAVE_DAYS = 5;
-                    
-                    const overtimeAllowance = Math.round(hourlyWage * 1.5 * DEFAULT_OVERTIME_HOURS);
-                    const holidayAllowance = Math.round(hourlyWage * 1.5 * DEFAULT_HOLIDAY_HOURS);
-                    const annualLeaveAllowance = Math.round(hourlyWage * dailyWorkHours * DEFAULT_ANNUAL_LEAVE_DAYS);
-                    
-                    return (
-                      <div className="mt-6 space-y-4">
-                        <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                            <p className="text-caption font-medium text-blue-700 dark:text-blue-300">
-                              예상 수당 내역 (자동 계산)
-                            </p>
+                      
+                      {/* 단위당 수당 안내 */}
+                      <div className="mb-4 p-3 rounded-xl bg-white/50 dark:bg-black/20 border border-blue-100 dark:border-blue-700">
+                        <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">📌 단위당 추가 수당</p>
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-blue-600/80 dark:text-blue-400/80">연장근로 1시간당</span>
+                            <span className="font-semibold text-blue-700 dark:text-blue-300">+{overtimePerHour.toLocaleString()}원</span>
                           </div>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-caption">
-                              <span className="text-blue-600/80 dark:text-blue-400/80">연장근로수당 (월 10시간 기준)</span>
-                              <span className="font-medium text-blue-700 dark:text-blue-300">{overtimeAllowance.toLocaleString()}원</span>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-blue-600/80 dark:text-blue-400/80">휴일근로 1일당</span>
+                            <span className="font-semibold text-blue-700 dark:text-blue-300">+{holidayPerDay.toLocaleString()}원</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-blue-600/80 dark:text-blue-400/80">연차유급휴가 1일당</span>
+                            <span className="font-semibold text-blue-700 dark:text-blue-300">+{annualLeavePerDay.toLocaleString()}원</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* 예상 총액 */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-blue-700 dark:text-blue-300">📊 월/연 예상 수당</p>
+                        <div className="flex justify-between text-caption">
+                          <span className="text-blue-600/80 dark:text-blue-400/80">연장근로수당 (월 {DEFAULT_OVERTIME_HOURS}시간 기준)</span>
+                          <span className="font-medium text-blue-700 dark:text-blue-300">{overtimeAllowance.toLocaleString()}원</span>
+                        </div>
+                        <div className="flex justify-between text-caption">
+                          <span className="text-blue-600/80 dark:text-blue-400/80">휴일근로수당 (월 {DEFAULT_HOLIDAY_DAYS}일 기준)</span>
+                          <span className="font-medium text-blue-700 dark:text-blue-300">{holidayAllowance.toLocaleString()}원</span>
+                        </div>
+                        <div className="flex justify-between text-caption">
+                          <span className="text-blue-600/80 dark:text-blue-400/80">연차유급휴가 수당 (연 {DEFAULT_ANNUAL_LEAVE_DAYS}일 기준)</span>
+                          <span className="font-medium text-blue-700 dark:text-blue-300">{annualLeaveAllowance.toLocaleString()}원</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* 5인 이상 사업장: 수당 직접 입력 */}
+                    {isOver5 && (
+                      <div className="p-4 rounded-2xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800">
+                        <p className="text-caption font-medium text-violet-700 dark:text-violet-300 mb-3">
+                          ✏️ 포괄임금 수당 명시 (필수)
+                        </p>
+                        <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-4">
+                          5인 이상 사업장은 각 수당 금액을 명시해야 법적 효력이 있어요.
+                        </p>
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-1">연장근로수당 (월)</p>
+                            <div className="relative">
+                              <Input variant="toss" inputSize="lg" type="number" placeholder={overtimeAllowance.toString()} value={contractForm.comprehensiveWageDetails?.overtimeAllowance || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, overtimeAllowance: Number(e.target.value) || undefined } })} className="pr-12" />
+                              <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground text-body">원</span>
                             </div>
-                            <div className="flex justify-between text-caption">
-                              <span className="text-blue-600/80 dark:text-blue-400/80">휴일근로수당 (월 1일 기준)</span>
-                              <span className="font-medium text-blue-700 dark:text-blue-300">{holidayAllowance.toLocaleString()}원</span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-1">휴일근로수당 (월)</p>
+                            <div className="relative">
+                              <Input variant="toss" inputSize="lg" type="number" placeholder={holidayAllowance.toString()} value={contractForm.comprehensiveWageDetails?.holidayAllowance || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, holidayAllowance: Number(e.target.value) || undefined } })} className="pr-12" />
+                              <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground text-body">원</span>
                             </div>
-                            <div className="flex justify-between text-caption">
-                              <span className="text-blue-600/80 dark:text-blue-400/80">연차유급휴가 수당 (연 5일 기준)</span>
-                              <span className="font-medium text-blue-700 dark:text-blue-300">{annualLeaveAllowance.toLocaleString()}원</span>
+                          </div>
+                          <div>
+                            <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-1">연차유급휴가 수당 (연)</p>
+                            <div className="relative">
+                              <Input variant="toss" inputSize="lg" type="number" placeholder={annualLeaveAllowance.toString()} value={contractForm.comprehensiveWageDetails?.annualLeaveAllowance || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, annualLeaveAllowance: Number(e.target.value) || undefined } })} className="pr-12" />
+                              <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground text-body">원</span>
                             </div>
                           </div>
                         </div>
-                        
-                        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                          <p className="text-caption text-amber-700 dark:text-amber-300 font-medium mb-1">
-                            ⚠️ 추가 수당 발생 가능
-                          </p>
-                          <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
-                            5인 미만 사업장도 연장·야간·휴일근로 시 추가 수당이 발생할 수 있어요. 위 금액은 예상치이며, 실제 근로 시간에 따라 달라집니다.
-                          </p>
-                        </div>
                       </div>
-                    );
-                  })()}
-                </>
-              )}
+                    )}
+                    
+                    <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <p className="text-caption text-amber-700 dark:text-amber-300 font-medium mb-1">
+                        ⚠️ 추가 수당 발생 가능
+                      </p>
+                      <p className="text-xs text-amber-600/80 dark:text-amber-400/80">
+                        위 금액은 예상 기준이며, 실제 연장/휴일근로 시간이 증가하면 추가 수당을 지급해야 합니다.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()} 
             </StepContainer>
           )}
         </AnimatePresence>
