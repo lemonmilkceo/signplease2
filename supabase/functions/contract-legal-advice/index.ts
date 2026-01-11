@@ -25,10 +25,24 @@ serve(async (req) => {
 - 문제가 있으면 ⚠️, 좋으면 ✅ 표시
 - 가장 중요한 1~2가지만 언급
 - 포괄임금계약 관련 주의사항은 반드시 포함
+- 5인 이상 사업장의 경우 수당 항목별 금액 명시 여부 필수 확인
 
-2026년 기준: 최저시급 10,360원, 주휴수당 포함 시 12,432원`;
+2026년 기준: 최저시급 10,360원, 주휴수당 포함 시 12,432원
+5인 이상 사업장: 포괄임금 계약 시 연장/휴일/연차 수당 항목과 금액을 명시해야 법적 효력 인정`;
 
-    const contractSummary = `시급: ${contractData.hourlyWage?.toLocaleString()}원 ${contractData.includeWeeklyHolidayPay ? '(주휴수당 포함)' : ''}, 근무: ${contractData.workStartTime}~${contractData.workEndTime}, 휴게: ${contractData.breakTimeMinutes ? `${contractData.breakTimeMinutes}분` : '미기재'}, 주${contractData.workDaysPerWeek || '?'}일, 포괄임금: ${contractData.isComprehensiveWage ? '예' : '아니오'}`;
+    const businessSizeText = contractData.businessSize === 'over5' ? '5인 이상' : contractData.businessSize === 'under5' ? '5인 미만' : '미선택';
+    
+    let wageDetailsText = '';
+    if (contractData.businessSize === 'over5' && contractData.comprehensiveWageDetails) {
+      const details = contractData.comprehensiveWageDetails;
+      const items = [];
+      if (details.overtimeAllowance) items.push(`연장근로수당: 월 ${details.overtimeAllowance.toLocaleString()}원`);
+      if (details.holidayAllowance) items.push(`휴일근로수당: 월 ${details.holidayAllowance.toLocaleString()}원`);
+      if (details.annualLeaveAllowance) items.push(`연차유급휴가수당: 연 ${details.annualLeaveAllowance.toLocaleString()}원`);
+      wageDetailsText = items.length > 0 ? `수당 세부: ${items.join(', ')}` : '수당 세부: 미기재';
+    }
+
+    const contractSummary = `사업장: ${businessSizeText}, 시급: ${contractData.hourlyWage?.toLocaleString()}원 ${contractData.includeWeeklyHolidayPay ? '(주휴수당 포함)' : ''}, 근무: ${contractData.workStartTime}~${contractData.workEndTime}, 휴게: ${contractData.breakTimeMinutes ? `${contractData.breakTimeMinutes}분` : '미기재'}, 주${contractData.workDaysPerWeek || '?'}일, 포괄임금: ${contractData.isComprehensiveWage ? '예' : '아니오'}${wageDetailsText ? `, ${wageDetailsText}` : ''}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

@@ -624,6 +624,7 @@ export default function CreateContract() {
               )}
             </StepContainer>
           )}
+        </AnimatePresence>
       </div>
 
       {/* Bottom Button */}
