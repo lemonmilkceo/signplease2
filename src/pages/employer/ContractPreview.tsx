@@ -443,13 +443,34 @@ export default function ContractPreview() {
                 </p>
               </div>
               <p className="text-caption text-blue-600/80 dark:text-blue-400/80">
-                본 계약서에는 휴일근로수당 및 연차유급휴가 수당이 포함되어 있습니다.
+                본 계약서에는 아래 명시된 수당이 포함되어 있습니다.
               </p>
               
-              {/* 5인 이상 사업장: 포괄임금 수당 세부 내역 */}
+              {/* 기본급/주휴수당 분리 명시 (모든 사업장) */}
+              {wageBreakdown && (
+                <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
+                  <p className="text-caption font-medium text-blue-700 dark:text-blue-300">임금 구성 내역</p>
+                  <div className="flex justify-between text-caption">
+                    <span className="text-blue-600/80 dark:text-blue-400/80">기본급 (월)</span>
+                    <span className="font-medium text-blue-700 dark:text-blue-300">
+                      {wageBreakdown.baseWage.toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-caption">
+                    <span className="text-blue-600/80 dark:text-blue-400/80">주휴수당 (월)</span>
+                    <span className="font-medium text-blue-700 dark:text-blue-300">
+                      {wageBreakdown.isWeeklyHolidayEligible 
+                        ? `${wageBreakdown.weeklyHolidayPay.toLocaleString()}원`
+                        : '해당없음 (주 15시간 미만)'}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {/* 5인 이상 사업장: 추가 포괄임금 수당 세부 내역 */}
               {contractForm.businessSize === 'over5' && contractForm.comprehensiveWageDetails && (
                 <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
-                  <p className="text-caption font-medium text-blue-700 dark:text-blue-300">수당 세부 내역</p>
+                  <p className="text-caption font-medium text-blue-700 dark:text-blue-300">추가 수당 내역</p>
                   {contractForm.comprehensiveWageDetails.overtimeAllowance && (
                     <div className="flex justify-between text-caption">
                       <span className="text-blue-600/80 dark:text-blue-400/80">연장근로수당 (월)</span>
