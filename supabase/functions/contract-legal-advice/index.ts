@@ -20,16 +20,27 @@ serve(async (req) => {
 
     const systemPrompt = `당신은 대한민국 노동법 전문 법률 자문가입니다. 2026년 최신 근로기준법을 기준으로 계약서를 분석해주세요.
 
-**응답 규칙:**
-- 총 5줄 이내로 핵심만 간결하게
-- 문제가 있으면 ⚠️, 좋으면 ✅ 표시
-- 가장 중요한 1~2가지만 언급
-- 기본급과 주휴수당이 명확히 구분되어 있는지 확인
-- 5인 이상 사업장의 경우 수당 항목별 금액 명시 여부 필수 확인
+**응답 형식 (반드시 JSON 형식으로 응답):**
+{
+  "grade": "완벽" | "양호" | "나쁨",
+  "summary": "한 줄 요약",
+  "issues": ["문제점1", "문제점2"],
+  "advice": "상세 조언 (3줄 이내)"
+}
 
-2026년 기준: 최저시급 10,360원, 주휴수당 포함 시 12,432원
-주휴수당: 주 15시간 이상 근무 시 발생, 1일 소정근로시간 × 시급
-5인 이상 사업장: 포괄임금 계약 시 연장/휴일/연차 수당 항목과 금액을 명시해야 법적 효력 인정`;
+**등급 기준:**
+- 완벽: 법적 문제 없음, 모든 필수 항목 충족
+- 양호: 경미한 보완 필요, 법적 효력에 큰 문제 없음
+- 나쁨: 심각한 법적 문제 있음, 즉시 수정 필요
+
+**체크 항목:**
+- 최저시급 준수 여부 (2026년 기준 10,360원)
+- 주휴수당 포함 시 12,432원 이상인지
+- 기본급과 주휴수당 명확히 구분 여부
+- 5인 이상 사업장: 연장/휴일/연차 수당 항목별 금액 명시 여부
+- 휴게시간 명시 여부
+
+반드시 위 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요.`;
 
     const businessSizeText = contractData.businessSize === 'over5' ? '5인 이상' : contractData.businessSize === 'under5' ? '5인 미만' : '미선택';
     
@@ -94,9 +105,29 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const advice = data.choices?.[0]?.message?.content || "조언을 생성할 수 없습니다.";
+    const rawContent = data.choices?.[0]?.message?.content || "";
+    
+    // JSON 파싱 시도
+    let result;
+    try {
+      // JSON 블록 추출 (```json ... ``` 형식 처리)
+      let jsonStr = rawContent;
+      const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1].trim();
+      }
+      result = JSON.parse(jsonStr);
+    } catch (parseError) {
+      // JSON 파싱 실패 시 기본 응답
+      result = {
+        grade: "양호",
+        summary: "분석이 완료되었습니다.",
+        issues: [],
+        advice: rawContent
+      };
+    }
 
-    return new Response(JSON.stringify({ advice }), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

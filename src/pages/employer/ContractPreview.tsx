@@ -25,6 +25,10 @@ import {
   Coffee,
   FileCheck,
   Info,
+  AlertTriangle,
+  CheckCircle2,
+  AlertCircle,
+  Edit,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getContract, signContractAsEmployer, Contract } from "@/lib/contract-api";
@@ -42,7 +46,12 @@ export default function ContractPreview() {
   const [isSignatureOpen, setIsSignatureOpen] = useState(false);
   const [isSigned, setIsSigned] = useState(false);
   const [isLegalAdviceOpen, setIsLegalAdviceOpen] = useState(false);
-  const [legalAdvice, setLegalAdvice] = useState<string | null>(null);
+  const [legalAdvice, setLegalAdvice] = useState<{
+    grade: '완벽' | '양호' | '나쁨';
+    summary: string;
+    issues: string[];
+    advice: string;
+  } | null>(null);
   const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
 
   useEffect(() => {
@@ -182,7 +191,7 @@ export default function ContractPreview() {
 
       if (error) throw error;
       
-      setLegalAdvice(data.advice);
+      setLegalAdvice(data);
     } catch (error) {
       console.error("Legal advice error:", error);
       toast.error("법적 조언을 가져오는데 실패했습니다.");
@@ -652,17 +661,95 @@ export default function ContractPreview() {
                     <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
                     <p className="text-body text-muted-foreground">계약서를 분석하고 있어요...</p>
                   </div>
-                ) : (
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <div className="whitespace-pre-wrap text-body text-foreground leading-relaxed">
-                      {legalAdvice}
+                ) : legalAdvice ? (
+                  <div className="space-y-5">
+                    {/* Grade Badge */}
+                    <div className={`p-4 rounded-2xl flex items-center gap-3 ${
+                      legalAdvice.grade === '완벽' 
+                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                        : legalAdvice.grade === '양호'
+                        ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
+                        : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
+                    }`}>
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        legalAdvice.grade === '완벽'
+                          ? 'bg-green-100 dark:bg-green-900/50'
+                          : legalAdvice.grade === '양호'
+                          ? 'bg-amber-100 dark:bg-amber-900/50'
+                          : 'bg-red-100 dark:bg-red-900/50'
+                      }`}>
+                        {legalAdvice.grade === '완벽' && <CheckCircle2 className="w-7 h-7 text-green-600 dark:text-green-400" />}
+                        {legalAdvice.grade === '양호' && <AlertCircle className="w-7 h-7 text-amber-600 dark:text-amber-400" />}
+                        {legalAdvice.grade === '나쁨' && <AlertTriangle className="w-7 h-7 text-red-600 dark:text-red-400" />}
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-heading font-bold ${
+                          legalAdvice.grade === '완벽'
+                            ? 'text-green-700 dark:text-green-300'
+                            : legalAdvice.grade === '양호'
+                            ? 'text-amber-700 dark:text-amber-300'
+                            : 'text-red-700 dark:text-red-300'
+                        }`}>
+                          {legalAdvice.grade}
+                        </p>
+                        <p className={`text-caption ${
+                          legalAdvice.grade === '완벽'
+                            ? 'text-green-600/80 dark:text-green-400/80'
+                            : legalAdvice.grade === '양호'
+                            ? 'text-amber-600/80 dark:text-amber-400/80'
+                            : 'text-red-600/80 dark:text-red-400/80'
+                        }`}>
+                          {legalAdvice.summary}
+                        </p>
+                      </div>
                     </div>
+
+                    {/* Issues List */}
+                    {legalAdvice.issues && legalAdvice.issues.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-body font-semibold text-foreground">수정이 필요한 항목</p>
+                        <div className="space-y-2">
+                          {legalAdvice.issues.map((issue, index) => (
+                            <div 
+                              key={index}
+                              className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-2"
+                            >
+                              <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                              <p className="text-caption text-red-700 dark:text-red-300">{issue}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Advice */}
+                    {legalAdvice.advice && (
+                      <div className="p-4 rounded-2xl bg-muted/50 border border-border">
+                        <p className="text-body font-semibold text-foreground mb-2">상세 조언</p>
+                        <p className="text-caption text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                          {legalAdvice.advice}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
+                ) : null}
               </div>
 
               {/* Modal Footer */}
-              <div className="p-6 border-t border-border">
+              <div className="p-6 border-t border-border space-y-3">
+                {legalAdvice && legalAdvice.grade !== '완벽' && (
+                  <Button
+                    size="full"
+                    onClick={() => {
+                      setIsLegalAdviceOpen(false);
+                      navigate('/employer/create');
+                    }}
+                    className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-semibold gap-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    계약서 수정하기
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="full"
