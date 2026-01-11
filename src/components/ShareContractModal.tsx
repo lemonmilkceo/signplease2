@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MessageCircle, Copy, Check, Loader2 } from "lucide-react";
+import { MessageCircle, Copy, Check, Loader2, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -101,15 +101,62 @@ export function ShareContractModal({
     // Try to open KakaoTalk
     window.location.href = kakaoUrl;
 
-    // Fallback: After a short delay, if still on page, show copy option
+    // Fallback: After a short delay, if still on page, offer web share
     setTimeout(() => {
+      handleWebShareFallback();
+    }, 1500);
+  };
+
+  const handleWebShareFallback = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "근로계약서 서명 요청",
+          text: `${workerName}님, 근로계약서가 도착했습니다.`,
+          url: contractUrl,
+        });
+        toast({
+          title: "공유 완료",
+          description: "계약서가 공유되었습니다.",
+        });
+        onOpenChange(false);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          // User cancelled - do nothing
+        }
+      }
+    } else {
       toast({
         title: "카카오톡 공유",
         description: "카카오톡이 열리지 않으면 링크를 복사해서 공유해주세요.",
       });
-    }, 1500);
+    }
+  };
 
-    onOpenChange(false);
+  const handleWebShare = async () => {
+    const success = await createInvitation();
+    if (!success) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "근로계약서 서명 요청",
+          text: `${workerName}님, 근로계약서가 도착했습니다.`,
+          url: contractUrl,
+        });
+        toast({
+          title: "공유 완료",
+          description: "계약서가 공유되었습니다.",
+        });
+        onOpenChange(false);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          handleCopyLink();
+        }
+      }
+    } else {
+      handleCopyLink();
+    }
   };
 
   const handleCopyLink = async () => {
@@ -176,6 +223,18 @@ export function ShareContractModal({
               )}
               카카오톡으로 공유
             </Button>
+
+            {typeof navigator !== "undefined" && navigator.share && (
+              <Button
+                variant="secondary"
+                onClick={handleWebShare}
+                disabled={isLoading || !phone}
+                className="w-full"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                다른 앱으로 공유
+              </Button>
+            )}
             
             <Button
               variant="outline"
