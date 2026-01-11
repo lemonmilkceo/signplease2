@@ -42,21 +42,16 @@ export default function CreateContract() {
         contractForm.breakTimeMinutes || 0
       );
       
-      // 기본값이 없을 때만 자동 계산
-      if (!contractForm.comprehensiveWageDetails?.overtimeAllowance &&
-          !contractForm.comprehensiveWageDetails?.holidayAllowance &&
-          !contractForm.comprehensiveWageDetails?.annualLeaveAllowance) {
-        
-        // 기본 예상값 설정
-        const DEFAULT_OVERTIME_HOURS = 10; // 월 10시간 연장근로
-        const DEFAULT_HOLIDAY_HOURS = 8;   // 월 8시간 휴일근로 (1일)
-        const DEFAULT_ANNUAL_LEAVE_DAYS = 5; // 연간 5일 미사용 연차
+      // 기본값이 없을 때만 자동 계산 (단위당 금액)
+      if (!contractForm.comprehensiveWageDetails?.overtimePerHour &&
+          !contractForm.comprehensiveWageDetails?.holidayPerDay &&
+          !contractForm.comprehensiveWageDetails?.annualLeavePerDay) {
         
         setContractForm({
           comprehensiveWageDetails: {
-            overtimeAllowance: Math.round(hourlyWage * 1.5 * DEFAULT_OVERTIME_HOURS),
-            holidayAllowance: Math.round(hourlyWage * 1.5 * DEFAULT_HOLIDAY_HOURS),
-            annualLeaveAllowance: Math.round(hourlyWage * dailyWorkHours * DEFAULT_ANNUAL_LEAVE_DAYS),
+            overtimePerHour: Math.round(hourlyWage * 1.5),
+            holidayPerDay: Math.round(hourlyWage * 1.5 * dailyWorkHours),
+            annualLeavePerDay: Math.round(hourlyWage * dailyWorkHours),
           }
         });
       }
@@ -160,7 +155,7 @@ export default function CreateContract() {
         // 5인 이상 사업장일 경우 포괄임금 수당 세부 내역 필수
         if (contractForm.businessSize === 'over5') {
           const details = contractForm.comprehensiveWageDetails;
-          return !!(details?.overtimeAllowance || details?.holidayAllowance || details?.annualLeaveAllowance);
+          return !!(details?.overtimePerHour || details?.holidayPerDay || details?.annualLeavePerDay);
         }
         return true; // 5인 미만은 선택사항
       default:
@@ -701,27 +696,27 @@ export default function CreateContract() {
                           ✏️ 포괄임금 수당 명시 (필수)
                         </p>
                         <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-4">
-                          5인 이상 사업장은 각 수당 금액을 명시해야 법적 효력이 있어요.
+                          단위별 금액을 명시하면 추가 근로 발생 시 계산이 편해요.
                         </p>
                         <div className="space-y-4">
                           <div>
-                            <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-1">연장근로수당 (월)</p>
+                            <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-1">연장근로수당 (1시간당)</p>
                             <div className="relative">
-                              <Input variant="toss" inputSize="lg" type="number" placeholder={overtimeAllowance.toString()} value={contractForm.comprehensiveWageDetails?.overtimeAllowance || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, overtimeAllowance: Number(e.target.value) || undefined } })} className="pr-12" />
+                              <Input variant="toss" inputSize="lg" type="number" placeholder={overtimePerHour.toString()} value={contractForm.comprehensiveWageDetails?.overtimePerHour || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, overtimePerHour: Number(e.target.value) || undefined } })} className="pr-12" />
                               <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground text-body">원</span>
                             </div>
                           </div>
                           <div>
-                            <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-1">휴일근로수당 (월)</p>
+                            <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-1">휴일근로수당 (1일당)</p>
                             <div className="relative">
-                              <Input variant="toss" inputSize="lg" type="number" placeholder={holidayAllowance.toString()} value={contractForm.comprehensiveWageDetails?.holidayAllowance || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, holidayAllowance: Number(e.target.value) || undefined } })} className="pr-12" />
+                              <Input variant="toss" inputSize="lg" type="number" placeholder={holidayPerDay.toString()} value={contractForm.comprehensiveWageDetails?.holidayPerDay || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, holidayPerDay: Number(e.target.value) || undefined } })} className="pr-12" />
                               <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground text-body">원</span>
                             </div>
                           </div>
                           <div>
-                            <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-1">연차유급휴가 수당 (연)</p>
+                            <p className="text-xs text-violet-600/80 dark:text-violet-400/80 mb-1">연차유급휴가 수당 (1일당)</p>
                             <div className="relative">
-                              <Input variant="toss" inputSize="lg" type="number" placeholder={annualLeaveAllowance.toString()} value={contractForm.comprehensiveWageDetails?.annualLeaveAllowance || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, annualLeaveAllowance: Number(e.target.value) || undefined } })} className="pr-12" />
+                              <Input variant="toss" inputSize="lg" type="number" placeholder={annualLeavePerDay.toString()} value={contractForm.comprehensiveWageDetails?.annualLeavePerDay || ''} onChange={(e) => setContractForm({ comprehensiveWageDetails: { ...contractForm.comprehensiveWageDetails, annualLeavePerDay: Number(e.target.value) || undefined } })} className="pr-12" />
                               <span className="absolute right-5 top-1/2 -translate-y-1/2 text-muted-foreground text-body">원</span>
                             </div>
                           </div>

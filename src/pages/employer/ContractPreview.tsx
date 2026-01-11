@@ -513,26 +513,26 @@ export default function ContractPreview() {
                 </div>
               )}
               
-              {/* 5인 이상 사업장: 추가 포괄임금 수당 세부 내역 */}
+              {/* 5인 이상 사업장: 추가 포괄임금 수당 세부 내역 (단위당) */}
               {contractForm.businessSize === 'over5' && contractForm.comprehensiveWageDetails && (
                 <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
-                  <p className="text-caption font-medium text-blue-700 dark:text-blue-300">추가 수당 내역</p>
-                  {contractForm.comprehensiveWageDetails.overtimeAllowance && (
+                  <p className="text-caption font-medium text-blue-700 dark:text-blue-300">추가 수당 내역 (단위당)</p>
+                  {contractForm.comprehensiveWageDetails.overtimePerHour && (
                     <div className="flex justify-between text-caption">
-                      <span className="text-blue-600/80 dark:text-blue-400/80">연장근로수당 (월)</span>
-                      <span className="font-medium text-blue-700 dark:text-blue-300">{contractForm.comprehensiveWageDetails.overtimeAllowance.toLocaleString()}원</span>
+                      <span className="text-blue-600/80 dark:text-blue-400/80">연장근로수당 (1시간당)</span>
+                      <span className="font-medium text-blue-700 dark:text-blue-300">{contractForm.comprehensiveWageDetails.overtimePerHour.toLocaleString()}원</span>
                     </div>
                   )}
-                  {contractForm.comprehensiveWageDetails.holidayAllowance && (
+                  {contractForm.comprehensiveWageDetails.holidayPerDay && (
                     <div className="flex justify-between text-caption">
-                      <span className="text-blue-600/80 dark:text-blue-400/80">휴일근로수당 (월)</span>
-                      <span className="font-medium text-blue-700 dark:text-blue-300">{contractForm.comprehensiveWageDetails.holidayAllowance.toLocaleString()}원</span>
+                      <span className="text-blue-600/80 dark:text-blue-400/80">휴일근로수당 (1일당)</span>
+                      <span className="font-medium text-blue-700 dark:text-blue-300">{contractForm.comprehensiveWageDetails.holidayPerDay.toLocaleString()}원</span>
                     </div>
                   )}
-                  {contractForm.comprehensiveWageDetails.annualLeaveAllowance && (
+                  {contractForm.comprehensiveWageDetails.annualLeavePerDay && (
                     <div className="flex justify-between text-caption">
-                      <span className="text-blue-600/80 dark:text-blue-400/80">연차유급휴가 수당 (연)</span>
-                      <span className="font-medium text-blue-700 dark:text-blue-300">{contractForm.comprehensiveWageDetails.annualLeaveAllowance.toLocaleString()}원</span>
+                      <span className="text-blue-600/80 dark:text-blue-400/80">연차유급휴가 수당 (1일당)</span>
+                      <span className="font-medium text-blue-700 dark:text-blue-300">{contractForm.comprehensiveWageDetails.annualLeavePerDay.toLocaleString()}원</span>
                     </div>
                   )}
                 </div>

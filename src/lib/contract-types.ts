@@ -1,12 +1,12 @@
 export type WageType = 'hourly' | 'monthly';
 export type BusinessSize = 'under5' | 'over5'; // 5인 미만 / 5인 이상
 
-// 포괄임금 수당 세부 내역 (5인 이상 사업장용)
+// 포괄임금 수당 세부 내역 (5인 이상 사업장용) - 단위당 금액
 export interface ComprehensiveWageDetails {
-  overtimeAllowance?: number; // 연장근로수당
+  overtimePerHour?: number; // 연장근로수당 (1시간당)
   nightAllowance?: number; // 야간근로수당
-  holidayAllowance?: number; // 휴일근로수당
-  annualLeaveAllowance?: number; // 연차유급휴가 수당
+  holidayPerDay?: number; // 휴일근로수당 (1일당)
+  annualLeavePerDay?: number; // 연차유급휴가 수당 (1일당)
 }
 
 export interface ContractData {
