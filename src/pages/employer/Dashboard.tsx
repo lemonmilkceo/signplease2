@@ -360,7 +360,6 @@ export default function EmployerDashboard() {
           }}
           className="p-4"
         >
-          {/* Main content row */}
           <div className="flex items-center gap-3">
             {/* Selection checkbox */}
             {isSelectionMode && (
@@ -379,26 +378,22 @@ export default function EmployerDashboard() {
               <FileText className={`w-5 h-5 ${isPending ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`} />
             </div>
             
-            {/* Content */}
+            {/* Content - 이름과 매장정보만 */}
             <div className="flex-1 min-w-0">
-              {/* Name row */}
-              <div className="flex items-center gap-2">
-                <span className="text-base font-semibold text-foreground truncate">
-                  {contract.worker_name}
-                </span>
-                {getStatusBadge(contract.status)}
-              </div>
-              
-              {/* Info row */}
-              <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                {contract.business_name && `${contract.business_name} · `}
-                시급 {contract.hourly_wage.toLocaleString()}원 · 주{contract.work_days.length}일
+              <p className="text-base font-semibold text-foreground truncate">
+                {contract.worker_name}
               </p>
+              {contract.business_name && (
+                <p className="text-sm text-muted-foreground truncate mt-0.5">
+                  {contract.business_name}
+                </p>
+              )}
             </div>
             
             {/* Right side */}
             {!isSelectionMode && (
               <div className="flex items-center gap-2 flex-shrink-0">
+                {getStatusBadge(contract.status)}
                 {isPending && canEdit && (
                   <button
                     onClick={(e) => {
@@ -406,6 +401,7 @@ export default function EmployerDashboard() {
                       navigate(`/employer/create?edit=${contract.id}`);
                     }}
                     className="px-3 py-1.5 rounded-full bg-primary text-white text-xs font-medium hover:bg-primary/90 transition-colors"
+                    title={`수정 가능: ${remainingDays}일 남음`}
                   >
                     수정
                   </button>
@@ -414,16 +410,6 @@ export default function EmployerDashboard() {
               </div>
             )}
           </div>
-          
-          {/* Edit period warning */}
-          {isPending && canEdit && remainingDays <= 3 && remainingDays > 0 && (
-            <div className="mt-3 pt-3 border-t border-border/50">
-              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
-                수정 가능 기간이 {remainingDays}일 남았습니다
-              </p>
-            </div>
-          )}
         </CardSlide>
       </motion.div>
     );
