@@ -157,6 +157,11 @@ export function ShareContractModal({
           description: "계약서가 공유되었습니다.",
         });
         onOpenChange(false);
+        
+        // Navigate to employer dashboard after a short delay
+        setTimeout(() => {
+          window.location.href = "/employer";
+        }, 500);
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
           handleCopyLink();

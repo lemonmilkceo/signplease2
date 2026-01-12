@@ -41,6 +41,7 @@ export default function CreateContract() {
   const [isLoadingContract, setIsLoadingContract] = useState(false);
   const [showNoCreditModal, setShowNoCreditModal] = useState(false);
   const [showBusinessTypeModal, setShowBusinessTypeModal] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
   const [remainingCredits, setRemainingCredits] = useState<number>(5);
   const [originalContract, setOriginalContract] = useState<Contract | null>(null);
   const [customBreakTime, setCustomBreakTime] = useState(false);
@@ -213,8 +214,14 @@ export default function CreateContract() {
   const handleGenerateContract = async () => {
     const isEditing = !!editingContractId;
     
-    // Check credits before generating (skip in demo mode and when editing)
-    if (!isDemo && user && !isEditing) {
+    // Demo mode에서는 회원가입 유도 모달 표시
+    if (isDemo) {
+      setShowSignupModal(true);
+      return;
+    }
+    
+    // Check credits before generating (skip when editing)
+    if (user && !isEditing) {
       try {
         const credits = await getRemainingCredits(user.id);
         setRemainingCredits(credits);
@@ -250,60 +257,7 @@ export default function CreateContract() {
     };
 
     try {
-      if (isDemo) {
-        // Demo mode - simulate AI generation
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        
-        if (isEditing) {
-          // Update existing demo contract
-          updateDemoContract(editingContractId, {
-            workerName: contractData.workerName,
-            hourlyWage: contractData.hourlyWage,
-            startDate: contractData.startDate,
-            workDays: contractData.workDays,
-            workStartTime: contractData.workStartTime,
-            workEndTime: contractData.workEndTime,
-            workLocation: contractData.workLocation,
-            businessName: contractData.businessName,
-            jobDescription: contractData.jobDescription,
-            wageType: contractForm.wageType || 'hourly',
-            monthlyWage: contractForm.monthlyWage,
-            breakTimeMinutes: contractForm.breakTimeMinutes,
-            businessSize: contractForm.businessSize,
-            comprehensiveWageDetails: contractForm.comprehensiveWageDetails,
-          });
-          toast.success("계약서가 수정되었습니다!");
-          navigate(`/employer/contract/${editingContractId}`);
-        } else {
-          // Create new demo contract
-          const mockContract: ContractData = {
-            id: Date.now().toString(),
-            employerName: contractData.employerName,
-            workerName: contractData.workerName,
-            hourlyWage: contractData.hourlyWage,
-            startDate: contractData.startDate,
-            workDays: contractData.workDays,
-            workStartTime: contractData.workStartTime,
-            workEndTime: contractData.workEndTime,
-            workLocation: contractData.workLocation,
-            businessName: contractData.businessName,
-            jobDescription: contractData.jobDescription,
-            wageType: contractForm.wageType || 'hourly',
-            monthlyWage: contractForm.monthlyWage,
-            breakTimeMinutes: contractForm.breakTimeMinutes,
-            businessSize: contractForm.businessSize,
-            comprehensiveWageDetails: contractForm.comprehensiveWageDetails,
-            status: 'draft',
-            createdAt: new Date().toISOString().split('T')[0],
-          };
-          addContract(mockContract);
-          navigate(`/employer/preview/${mockContract.id}`);
-        }
-        
-        // Reset form and editing state
-        resetContractForm();
-        setEditingContractId(null);
-      } else if (user) {
+      if (user) {
         if (isEditing && originalContract) {
           // Update existing contract
           const contractContent = await generateContractContent(contractData);
@@ -1209,6 +1163,43 @@ export default function CreateContract() {
                 </span>
               </motion.button>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Signup Modal for Demo Mode */}
+      <Dialog open={showSignupModal} onOpenChange={setShowSignupModal}>
+        <DialogContent className="max-w-sm mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg text-center">회원가입이 필요해요</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <p className="text-center text-muted-foreground text-sm">
+              계약서를 생성하려면 회원가입이 필요합니다.<br />
+              가입 후 <strong>무료 5회</strong> 계약서 생성이 가능해요!
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={() => navigate('/signup')}
+                className="w-full"
+              >
+                회원가입하기
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/login')}
+                className="w-full"
+              >
+                이미 계정이 있어요
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setShowSignupModal(false)}
+                className="w-full text-muted-foreground"
+              >
+                계속 둘러보기
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
