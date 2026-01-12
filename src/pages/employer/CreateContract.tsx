@@ -16,6 +16,8 @@ import { toast } from "sonner";
 import { AllowanceCalculator } from "@/components/allowance-calculator";
 import { parseWorkTime } from "@/lib/wage-utils";
 import { useKakaoAddress } from "@/hooks/useKakaoAddress";
+import { getRemainingCredits, useCredit } from "@/lib/credits-api";
+import { NoCreditModal } from "@/components/NoCreditModal";
 
 const TOTAL_STEPS = 10;
 const BREAK_TIME_OPTIONS = [0, 30, 60, 90, 120];
@@ -27,6 +29,23 @@ export default function CreateContract() {
   const { openAddressSearch, isScriptLoaded } = useKakaoAddress();
   const [currentStep, setCurrentStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showNoCreditModal, setShowNoCreditModal] = useState(false);
+  const [remainingCredits, setRemainingCredits] = useState<number>(5);
+
+  // Fetch remaining credits on mount
+  useEffect(() => {
+    const fetchCredits = async () => {
+      if (user && !isDemo) {
+        try {
+          const credits = await getRemainingCredits(user.id);
+          setRemainingCredits(credits);
+        } catch (error) {
+          console.error("Error fetching credits:", error);
+        }
+      }
+    };
+    fetchCredits();
+  }, [user, isDemo]);
 
   useEffect(() => {
     if (!authLoading && !user && !isDemo) {
@@ -72,6 +91,21 @@ export default function CreateContract() {
   };
 
   const handleGenerateContract = async () => {
+    // Check credits before generating (skip in demo mode)
+    if (!isDemo && user) {
+      try {
+        const credits = await getRemainingCredits(user.id);
+        setRemainingCredits(credits);
+        
+        if (credits <= 0) {
+          setShowNoCreditModal(true);
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking credits:", error);
+      }
+    }
+
     setIsGenerating(true);
 
     const contractData: ContractInput = {
@@ -104,9 +138,22 @@ export default function CreateContract() {
         addContract(mockContract);
         navigate(`/employer/preview/${mockContract.id}`);
       } else if (user) {
+        // Use credit before generating
+        const creditUsed = await useCredit(user.id);
+        if (!creditUsed) {
+          setShowNoCreditModal(true);
+          setIsGenerating(false);
+          return;
+        }
+
         // Real mode - use AI and database
         const contractContent = await generateContractContent(contractData);
         const newContract = await createContract(contractData, contractContent, user.id);
+        
+        // Update remaining credits
+        const newCredits = await getRemainingCredits(user.id);
+        setRemainingCredits(newCredits);
+        
         navigate(`/employer/preview/${newContract.id}`);
       }
     } catch (error) {
@@ -871,6 +918,13 @@ export default function CreateContract() {
           </Button>
         )}
       </div>
+
+      {/* No Credit Modal */}
+      <NoCreditModal
+        open={showNoCreditModal}
+        onOpenChange={setShowNoCreditModal}
+        remainingCredits={remainingCredits}
+      />
     </div>
   );
 }
