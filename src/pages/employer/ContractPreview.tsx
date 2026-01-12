@@ -293,11 +293,29 @@ export default function ContractPreview() {
     const dailyWorkHours = parseWorkTime(
       contract.work_start_time,
       contract.work_end_time,
-      contractForm.breakTimeMinutes || 0
+      contract.break_time_minutes ?? contractForm.breakTimeMinutes ?? 0
     );
-    const workDaysPerWeek = contractForm.workDaysPerWeek || contract.work_days?.length || 5;
+    const workDaysPerWeek = contract.work_days_per_week ?? contractForm.workDaysPerWeek ?? contract.work_days?.length ?? 5;
     
     return calculateMonthlyWageBreakdown(
+      contract.hourly_wage,
+      workDaysPerWeek,
+      dailyWorkHours
+    );
+  }, [contract, contractForm.breakTimeMinutes, contractForm.workDaysPerWeek]);
+
+  // 시간당 주휴수당 계산 (주휴수당 미포함 시 사용)
+  const weeklyHolidayPayDetail = useMemo(() => {
+    if (!contract) return null;
+    
+    const dailyWorkHours = parseWorkTime(
+      contract.work_start_time,
+      contract.work_end_time,
+      contract.break_time_minutes ?? contractForm.breakTimeMinutes ?? 0
+    );
+    const workDaysPerWeek = contract.work_days_per_week ?? contractForm.workDaysPerWeek ?? contract.work_days?.length ?? 5;
+    
+    return calculateWeeklyHolidayPay(
       contract.hourly_wage,
       workDaysPerWeek,
       dailyWorkHours
@@ -605,6 +623,20 @@ export default function ContractPreview() {
                 <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
                   <p className="text-caption font-medium text-blue-700 dark:text-blue-300">임금 구성 내역</p>
                   <div className="flex justify-between text-caption">
+                    <span className="text-blue-600/80 dark:text-blue-400/80">기본 시급</span>
+                    <span className="font-medium text-blue-700 dark:text-blue-300">
+                      {contract.hourly_wage.toLocaleString()}원
+                    </span>
+                  </div>
+                  {weeklyHolidayPayDetail?.isEligible && (
+                    <div className="flex justify-between text-caption">
+                      <span className="text-blue-600/80 dark:text-blue-400/80">주휴수당 (1시간당)</span>
+                      <span className="font-medium text-blue-700 dark:text-blue-300">
+                        {weeklyHolidayPayDetail.weeklyHolidayPayPerHour.toLocaleString()}원
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-caption pt-1 border-t border-blue-200/50 dark:border-blue-700/50">
                     <span className="text-blue-600/80 dark:text-blue-400/80">기본급 (월)</span>
                     <span className="font-medium text-blue-700 dark:text-blue-300">
                       {wageBreakdown.baseWage.toLocaleString()}원
