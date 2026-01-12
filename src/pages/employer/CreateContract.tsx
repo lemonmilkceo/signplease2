@@ -9,7 +9,7 @@ import { ProgressSteps } from "@/components/ui/progress-steps";
 import { StepContainer, StepQuestion } from "@/components/ui/step-container";
 import { AIGenerating, LoadingSpinner } from "@/components/ui/loading";
 import { ArrowLeft, Calendar, Clock, Wallet, Banknote, Info, Sparkles, Coffee, Building2, Users, Search } from "lucide-react";
-import { WORK_DAYS_PER_WEEK, MINIMUM_WAGE_2026, MINIMUM_WAGE_WITH_HOLIDAY_2026, JOB_KEYWORDS, WageType, BusinessSize, BusinessType, BUSINESS_TYPE_KEYWORDS, BUSINESS_TYPE_INFO } from "@/lib/contract-types";
+import { WORK_DAYS_PER_WEEK, MINIMUM_WAGE_2026, MINIMUM_WAGE_WITH_HOLIDAY_2026, JOB_KEYWORDS, WageType, BusinessSize, BusinessType, BUSINESS_TYPE_KEYWORDS, BUSINESS_TYPE_INFO, ContractData } from "@/lib/contract-types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateContractContent, createContract, getContract, updateContract as updateContractApi, ContractInput, Contract } from "@/lib/contract-api";
 import { toast } from "sonner";
@@ -211,6 +211,11 @@ export default function CreateContract() {
       workLocation: contractForm.workLocation || '',
       businessName: contractForm.businessName,
       jobDescription: contractForm.jobDescription,
+      breakTimeMinutes: contractForm.breakTimeMinutes,
+      businessSize: contractForm.businessSize,
+      overtimePerHour: contractForm.comprehensiveWageDetails?.overtimePerHour,
+      holidayPerDay: contractForm.comprehensiveWageDetails?.holidayPerDay,
+      annualLeavePerDay: contractForm.comprehensiveWageDetails?.annualLeavePerDay,
     };
 
     try {
@@ -221,20 +226,43 @@ export default function CreateContract() {
         if (isEditing) {
           // Update existing demo contract
           updateDemoContract(editingContractId, {
-            ...contractData,
+            workerName: contractData.workerName,
+            hourlyWage: contractData.hourlyWage,
+            startDate: contractData.startDate,
+            workDays: contractData.workDays,
+            workStartTime: contractData.workStartTime,
+            workEndTime: contractData.workEndTime,
+            workLocation: contractData.workLocation,
+            businessName: contractData.businessName,
+            jobDescription: contractData.jobDescription,
             wageType: contractForm.wageType || 'hourly',
             monthlyWage: contractForm.monthlyWage,
+            breakTimeMinutes: contractForm.breakTimeMinutes,
+            businessSize: contractForm.businessSize,
+            comprehensiveWageDetails: contractForm.comprehensiveWageDetails,
           });
           toast.success("계약서가 수정되었습니다!");
           navigate(`/employer/contract/${editingContractId}`);
         } else {
           // Create new demo contract
-          const mockContract = {
+          const mockContract: ContractData = {
             id: Date.now().toString(),
-            ...contractData,
+            employerName: contractData.employerName,
+            workerName: contractData.workerName,
+            hourlyWage: contractData.hourlyWage,
+            startDate: contractData.startDate,
+            workDays: contractData.workDays,
+            workStartTime: contractData.workStartTime,
+            workEndTime: contractData.workEndTime,
+            workLocation: contractData.workLocation,
+            businessName: contractData.businessName,
+            jobDescription: contractData.jobDescription,
             wageType: contractForm.wageType || 'hourly',
             monthlyWage: contractForm.monthlyWage,
-            status: 'draft' as const,
+            breakTimeMinutes: contractForm.breakTimeMinutes,
+            businessSize: contractForm.businessSize,
+            comprehensiveWageDetails: contractForm.comprehensiveWageDetails,
+            status: 'draft',
             createdAt: new Date().toISOString().split('T')[0],
           };
           addContract(mockContract);

@@ -12,6 +12,11 @@ export interface ContractInput {
   businessName?: string;
   jobDescription?: string;
   employerName: string;
+  breakTimeMinutes?: number;
+  businessSize?: string;
+  overtimePerHour?: number;
+  holidayPerDay?: number;
+  annualLeavePerDay?: number;
 }
 
 export interface Contract {
@@ -36,6 +41,11 @@ export interface Contract {
   updated_at: string;
   signed_at: string | null;
   folder_id: string | null;
+  break_time_minutes?: number | null;
+  business_size?: string | null;
+  overtime_per_hour?: number | null;
+  holiday_per_day?: number | null;
+  annual_leave_per_day?: number | null;
 }
 
 export interface ContractFolder {
@@ -82,6 +92,11 @@ export async function createContract(
       job_description: data.jobDescription || null,
       contract_content: contractContent,
       status: 'draft',
+      break_time_minutes: data.breakTimeMinutes || 0,
+      business_size: data.businessSize || 'under5',
+      overtime_per_hour: data.overtimePerHour || null,
+      holiday_per_day: data.holidayPerDay || null,
+      annual_leave_per_day: data.annualLeavePerDay || null,
     })
     .select()
     .single();

@@ -149,16 +149,21 @@ export type Database = {
       }
       contracts: {
         Row: {
+          annual_leave_per_day: number | null
+          break_time_minutes: number | null
           business_name: string | null
+          business_size: string | null
           contract_content: string | null
           created_at: string
           employer_id: string
           employer_name: string
           employer_signature: string | null
           folder_id: string | null
+          holiday_per_day: number | null
           hourly_wage: number
           id: string
           job_description: string | null
+          overtime_per_hour: number | null
           signed_at: string | null
           start_date: string
           status: string
@@ -172,16 +177,21 @@ export type Database = {
           worker_signature: string | null
         }
         Insert: {
+          annual_leave_per_day?: number | null
+          break_time_minutes?: number | null
           business_name?: string | null
+          business_size?: string | null
           contract_content?: string | null
           created_at?: string
           employer_id: string
           employer_name: string
           employer_signature?: string | null
           folder_id?: string | null
+          holiday_per_day?: number | null
           hourly_wage: number
           id?: string
           job_description?: string | null
+          overtime_per_hour?: number | null
           signed_at?: string | null
           start_date: string
           status?: string
@@ -195,16 +205,21 @@ export type Database = {
           worker_signature?: string | null
         }
         Update: {
+          annual_leave_per_day?: number | null
+          break_time_minutes?: number | null
           business_name?: string | null
+          business_size?: string | null
           contract_content?: string | null
           created_at?: string
           employer_id?: string
           employer_name?: string
           employer_signature?: string | null
           folder_id?: string | null
+          holiday_per_day?: number | null
           hourly_wage?: number
           id?: string
           job_description?: string | null
+          overtime_per_hour?: number | null
           signed_at?: string | null
           start_date?: string
           status?: string

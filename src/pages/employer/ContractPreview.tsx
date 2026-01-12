@@ -209,16 +209,20 @@ export default function ContractPreview() {
         noEndDate: contractForm.noEndDate,
         workStartTime: contract?.work_start_time || '',
         workEndTime: contract?.work_end_time || '',
-        breakTimeMinutes: contractForm.breakTimeMinutes,
-        workDaysPerWeek: contractForm.workDaysPerWeek,
+        breakTimeMinutes: contract?.break_time_minutes ?? contractForm.breakTimeMinutes,
+        workDaysPerWeek: contractForm.workDaysPerWeek || (contract?.work_days?.length || 0),
         workLocation: contract?.work_location || '',
         paymentMonth: contractForm.paymentMonth,
         paymentDay: contractForm.paymentDay,
         paymentEndOfMonth: contractForm.paymentEndOfMonth,
         jobDescription: contractForm.jobDescription || contract?.job_description,
         isComprehensiveWage: true,
-        businessSize: contractForm.businessSize, // 5인 미만/이상
-        comprehensiveWageDetails: contractForm.comprehensiveWageDetails, // 포괄임금 수당 세부
+        businessSize: contract?.business_size ?? contractForm.businessSize,
+        comprehensiveWageDetails: {
+          overtimePerHour: contract?.overtime_per_hour ?? contractForm.comprehensiveWageDetails?.overtimePerHour,
+          holidayPerDay: contract?.holiday_per_day ?? contractForm.comprehensiveWageDetails?.holidayPerDay,
+          annualLeavePerDay: contract?.annual_leave_per_day ?? contractForm.comprehensiveWageDetails?.annualLeavePerDay,
+        },
         // 주휴수당 계산 정보 추가
         wageBreakdown: wageBreakdown ? {
           baseWage: wageBreakdown.baseWage,
@@ -428,19 +432,22 @@ export default function ContractPreview() {
             </div>
 
             {/* 휴게시간 */}
-            {contractForm.breakTimeMinutes !== undefined && (
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                  <Coffee className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-caption text-muted-foreground mb-1">휴게시간</p>
-                  <p className="text-body font-medium text-foreground">
-                    {contractForm.breakTimeMinutes === 0 ? '없음' : `${contractForm.breakTimeMinutes}분`}
-                  </p>
-                </div>
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                <Coffee className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               </div>
-            )}
+              <div className="flex-1">
+                <p className="text-caption text-muted-foreground mb-1">휴게시간</p>
+                <p className="text-body font-medium text-foreground">
+                  {(() => {
+                    const breakTime = contract.break_time_minutes ?? contractForm.breakTimeMinutes;
+                    if (breakTime === undefined || breakTime === null) return '미정';
+                    if (breakTime === 0) return '없음';
+                    return `${breakTime}분`;
+                  })()}
+                </p>
+              </div>
+            </div>
 
             {/* 근무 장소 */}
             <div className="flex items-start gap-4">
@@ -579,7 +586,12 @@ export default function ContractPreview() {
               <div className="flex items-center gap-2 mb-2">
                 <FileCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <p className="text-caption font-medium text-blue-700 dark:text-blue-300">
-                  포괄임금계약서 {contractForm.businessSize === 'over5' ? '(5인 이상 사업장)' : contractForm.businessSize === 'under5' ? '(5인 미만 사업장)' : ''}
+                  포괄임금계약서 {(() => {
+                    const size = contract.business_size ?? contractForm.businessSize;
+                    if (size === 'over5') return '(5인 이상 사업장)';
+                    if (size === 'under5') return '(5인 미만 사업장)';
+                    return '';
+                  })()}
                 </p>
               </div>
               <p className="text-caption text-blue-600/80 dark:text-blue-400/80">
@@ -635,29 +647,39 @@ export default function ContractPreview() {
               )}
               
               {/* 5인 이상 사업장: 추가 포괄임금 수당 세부 내역 (단위당) */}
-              {contractForm.businessSize === 'over5' && contractForm.comprehensiveWageDetails && (
-                <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
-                  <p className="text-caption font-medium text-blue-700 dark:text-blue-300">추가 수당 내역 (단위당)</p>
-                  {contractForm.comprehensiveWageDetails.overtimePerHour && (
-                    <div className="flex justify-between text-caption">
-                      <span className="text-blue-600/80 dark:text-blue-400/80">연장근로수당 (1시간당)</span>
-                      <span className="font-medium text-blue-700 dark:text-blue-300">{contractForm.comprehensiveWageDetails.overtimePerHour.toLocaleString()}원</span>
+              {(() => {
+                const size = contract.business_size ?? contractForm.businessSize;
+                const overtime = contract.overtime_per_hour ?? contractForm.comprehensiveWageDetails?.overtimePerHour;
+                const holiday = contract.holiday_per_day ?? contractForm.comprehensiveWageDetails?.holidayPerDay;
+                const annual = contract.annual_leave_per_day ?? contractForm.comprehensiveWageDetails?.annualLeavePerDay;
+                
+                if (size === 'over5' && (overtime || holiday || annual)) {
+                  return (
+                    <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
+                      <p className="text-caption font-medium text-blue-700 dark:text-blue-300">추가 수당 내역 (단위당)</p>
+                      {overtime && (
+                        <div className="flex justify-between text-caption">
+                          <span className="text-blue-600/80 dark:text-blue-400/80">연장근로수당 (1시간당)</span>
+                          <span className="font-medium text-blue-700 dark:text-blue-300">{overtime.toLocaleString()}원</span>
+                        </div>
+                      )}
+                      {holiday && (
+                        <div className="flex justify-between text-caption">
+                          <span className="text-blue-600/80 dark:text-blue-400/80">휴일근로수당 (1일당)</span>
+                          <span className="font-medium text-blue-700 dark:text-blue-300">{holiday.toLocaleString()}원</span>
+                        </div>
+                      )}
+                      {annual && (
+                        <div className="flex justify-between text-caption">
+                          <span className="text-blue-600/80 dark:text-blue-400/80">연차유급휴가 수당 (1일당)</span>
+                          <span className="font-medium text-blue-700 dark:text-blue-300">{annual.toLocaleString()}원</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {contractForm.comprehensiveWageDetails.holidayPerDay && (
-                    <div className="flex justify-between text-caption">
-                      <span className="text-blue-600/80 dark:text-blue-400/80">휴일근로수당 (1일당)</span>
-                      <span className="font-medium text-blue-700 dark:text-blue-300">{contractForm.comprehensiveWageDetails.holidayPerDay.toLocaleString()}원</span>
-                    </div>
-                  )}
-                  {contractForm.comprehensiveWageDetails.annualLeavePerDay && (
-                    <div className="flex justify-between text-caption">
-                      <span className="text-blue-600/80 dark:text-blue-400/80">연차유급휴가 수당 (1일당)</span>
-                      <span className="font-medium text-blue-700 dark:text-blue-300">{contractForm.comprehensiveWageDetails.annualLeavePerDay.toLocaleString()}원</span>
-                    </div>
-                  )}
-                </div>
-              )}
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
 
