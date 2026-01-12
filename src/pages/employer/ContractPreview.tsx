@@ -32,6 +32,7 @@ import {
   Edit,
   Download,
   MessageCircle,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getContract, signContractAsEmployer, Contract } from "@/lib/contract-api";
@@ -41,6 +42,8 @@ import { parseWorkTime, calculateMonthlyWageBreakdown, calculateWeeklyHolidayPay
 import { generateContractPDF, ContractPDFData } from "@/lib/pdf-utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ShareContractModal } from "@/components/ShareContractModal";
+import { WorkerReviewModal } from "@/components/WorkerReviewModal";
+import { getReviewByContract, WorkerReview, RATING_LABELS, RATING_COLORS } from "@/lib/review-api";
 import { isContractEditable, getRemainingEditDays, CONTRACT_EDIT_PERIOD_DAYS } from "@/lib/contract-utils";
 
 export default function ContractPreview() {
@@ -63,6 +66,8 @@ export default function ContractPreview() {
   const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [existingReview, setExistingReview] = useState<WorkerReview | null>(null);
   const [remainingReviews, setRemainingReviews] = useState<number>(5);
   const [isLoadingReviews, setIsLoadingReviews] = useState(true);
 
@@ -115,6 +120,20 @@ export default function ContractPreview() {
 
     fetchContract();
   }, [id, isDemo, demoContracts]);
+
+  // Fetch existing review for this contract
+  useEffect(() => {
+    const fetchReview = async () => {
+      if (!id || isDemo) return;
+      try {
+        const review = await getReviewByContract(id);
+        setExistingReview(review);
+      } catch (error) {
+        console.error("Error fetching review:", error);
+      }
+    };
+    fetchReview();
+  }, [id, isDemo]);
 
   // 남은 노무사 검토 횟수 조회
   useEffect(() => {
@@ -1027,12 +1046,46 @@ export default function ContractPreview() {
                 </Tooltip>
               </motion.div>
             )}
+
+            {/* Worker Review Button - Only for completed contracts */}
+            {contract.status === 'completed' && contract.worker_id && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Button
+                  variant={existingReview ? "outline" : "default"}
+                  size="full"
+                  onClick={() => {
+                    if (isDemo) {
+                      toast.info('데모 모드에서는 평가 기능을 체험할 수 없어요. 로그인 후 이용해주세요!');
+                      return;
+                    }
+                    setIsReviewModalOpen(true);
+                  }}
+                  className="gap-2"
+                >
+                  <Star className={`w-5 h-5 ${existingReview ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                  {existingReview ? (
+                    <>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${RATING_COLORS[existingReview.rating]}`}>
+                        {RATING_LABELS[existingReview.rating]}
+                      </span>
+                      평가 수정하기
+                    </>
+                  ) : (
+                    `${contract.worker_name}님 평가하기`
+                  )}
+                </Button>
+              </motion.div>
+            )}
             
             {/* PDF Download Button */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.55 }}
             >
               <Button
                 variant="outline"
@@ -1057,6 +1110,24 @@ export default function ContractPreview() {
           </>
         )}
       </div>
+
+      {/* Worker Review Modal */}
+      {contract.worker_id && user && (
+        <WorkerReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={() => {
+            setIsReviewModalOpen(false);
+            // Refresh the review after closing
+            if (id) {
+              getReviewByContract(id).then(setExistingReview).catch(console.error);
+            }
+          }}
+          contractId={contract.id}
+          employerId={user.id}
+          workerId={contract.worker_id}
+          workerName={contract.worker_name}
+        />
+      )}
 
       {/* Signature Canvas Modal */}
       <SignatureCanvas

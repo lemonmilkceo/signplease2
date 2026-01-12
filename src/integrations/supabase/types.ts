@@ -386,6 +386,47 @@ export type Database = {
         }
         Relationships: []
       }
+      worker_reviews: {
+        Row: {
+          comment: string | null
+          contract_id: string
+          created_at: string
+          employer_id: string
+          id: string
+          rating: number
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          comment?: string | null
+          contract_id: string
+          created_at?: string
+          employer_id: string
+          id?: string
+          rating: number
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          comment?: string | null
+          contract_id?: string
+          created_at?: string
+          employer_id?: string
+          id?: string
+          rating?: number
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_reviews_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
