@@ -396,9 +396,7 @@ export default function EmployerDashboard() {
             </h1>
           </motion.div>
 
-          {!isDemo && user && (
-            <AppDrawer userType="employer" />
-          )}
+          <AppDrawer userType="employer" />
         </div>
         
         {/* Credits Badge */}
