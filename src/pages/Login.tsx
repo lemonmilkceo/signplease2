@@ -212,7 +212,7 @@ export default function Login() {
             </div>
             <button
               type="button"
-              onClick={() => toast.info("비밀번호 찾기 기능은 준비 중입니다")}
+              onClick={() => navigate("/forgot-password")}
               className="text-sm text-primary hover:underline"
             >
               비밀번호를 잊으셨나요?
