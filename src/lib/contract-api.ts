@@ -49,6 +49,7 @@ export interface Contract {
   holiday_per_day?: number | null;
   annual_leave_per_day?: number | null;
   worker_deleted_at?: string | null;
+  employer_deleted_at?: string | null;
 }
 
 export interface ContractFolder {
@@ -112,12 +113,13 @@ export async function createContract(
   return contract as Contract;
 }
 
-// Get all contracts for an employer
+// Get all contracts for an employer (excluding soft-deleted ones)
 export async function getEmployerContracts(employerId: string): Promise<Contract[]> {
   const { data, error } = await supabase
     .from('contracts')
     .select('*')
     .eq('employer_id', employerId)
+    .is('employer_deleted_at', null)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -125,6 +127,46 @@ export async function getEmployerContracts(employerId: string): Promise<Contract
   }
 
   return (data || []) as Contract[];
+}
+
+// Get soft-deleted contracts for an employer (trash)
+export async function getEmployerTrashedContracts(employerId: string): Promise<Contract[]> {
+  const { data, error } = await supabase
+    .from('contracts')
+    .select('*')
+    .eq('employer_id', employerId)
+    .not('employer_deleted_at', 'is', null)
+    .order('employer_deleted_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data || []) as Contract[];
+}
+
+// Soft delete contracts for employers (sets employer_deleted_at timestamp)
+export async function softDeleteContractsForEmployer(contractIds: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('contracts')
+    .update({ employer_deleted_at: new Date().toISOString() })
+    .in('id', contractIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Restore soft-deleted contracts for employers (clears employer_deleted_at timestamp)
+export async function restoreContractsForEmployer(contractIds: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('contracts')
+    .update({ employer_deleted_at: null })
+    .in('id', contractIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 // Get a single contract by ID

@@ -9,14 +9,15 @@ import {
   Plus, FileText, Clock, CheckCircle2, ChevronRight, Building2, 
   Trash2, FolderPlus, X, MoreVertical, Folder, Edit2, FolderOpen,
   MessageCircle, Edit, MapPin, Calendar, Wallet, Briefcase, ArrowUpDown,
-  User, GripVertical
+  User, GripVertical, RotateCcw
 } from "lucide-react";
 import { isContractEditable, getRemainingEditDays } from "@/lib/contract-utils";
 import { CardSlide } from "@/components/ui/card-slide";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { 
   getEmployerContracts, Contract, getFolders, ContractFolder, 
-  deleteContracts, createFolder, deleteFolder, moveContractsToFolder, updateFolder 
+  deleteContracts, createFolder, deleteFolder, moveContractsToFolder, updateFolder,
+  softDeleteContractsForEmployer, restoreContractsForEmployer, getEmployerTrashedContracts
 } from "@/lib/contract-api";
 import { getUserPreferences, saveUserPreferences, SortOption } from "@/lib/preferences-api";
 import { CreditsBadge } from "@/components/CreditsBadge";
@@ -204,6 +205,7 @@ export default function EmployerDashboard() {
   const { isDemo, contracts: demoContracts, user: demoUser, updateContract: updateDemoContract } = useAppStore();
   
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [trashedContracts, setTrashedContracts] = useState<Contract[]>([]);
   const [folders, setFolders] = useState<ContractFolder[]>([]);
   const [demoFolders, setDemoFolders] = useState<ContractFolder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -214,6 +216,9 @@ export default function EmployerDashboard() {
   
   // Folder view
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  
+  // Trash view
+  const [isTrashView, setIsTrashView] = useState(false);
   
   // Sorting
   const [sortOption, setSortOption] = useState<SortOption>('newest');
@@ -255,13 +260,15 @@ export default function EmployerDashboard() {
       }
 
       try {
-        const [contractsData, foldersData, prefsData] = await Promise.all([
+        const [contractsData, foldersData, prefsData, trashedData] = await Promise.all([
           getEmployerContracts(user.id),
           getFolders(user.id),
-          getUserPreferences(user.id, 'employer')
+          getUserPreferences(user.id, 'employer'),
+          getEmployerTrashedContracts(user.id)
         ]);
         setContracts(contractsData);
         setFolders(foldersData);
+        setTrashedContracts(trashedData);
         
         // Load saved preferences
         if (prefsData) {
@@ -400,25 +407,58 @@ export default function EmployerDashboard() {
     setSelectedIds(new Set());
   };
 
+  const exitTrashView = () => {
+    setIsTrashView(false);
+    setSelectedIds(new Set());
+    setIsSelectionMode(false);
+  };
+
   const handleDelete = async () => {
     if (isDemo) {
-      toast.success(`${selectedIds.size}개의 계약서가 삭제되었습니다. (데모)`);
+      toast.success(`${selectedIds.size}개의 계약서가 휴지통으로 이동되었습니다. (데모)`);
       exitSelectionMode();
       setShowDeleteDialog(false);
       return;
     }
     
     try {
-      await deleteContracts(Array.from(selectedIds));
+      // Use soft delete - move to trash instead of permanent delete
+      await softDeleteContractsForEmployer(Array.from(selectedIds));
+      const deletedContracts = contracts.filter(c => selectedIds.has(c.id)).map(c => ({
+        ...c,
+        employer_deleted_at: new Date().toISOString()
+      }));
+      setTrashedContracts(prev => [...deletedContracts, ...prev]);
       setContracts(prev => prev.filter(c => !selectedIds.has(c.id)));
       setCustomOrder(prev => prev.filter(id => !selectedIds.has(id)));
-      toast.success(`${selectedIds.size}개의 계약서가 삭제되었습니다.`);
+      toast.success(`${selectedIds.size}개의 계약서가 휴지통으로 이동되었습니다.`);
       exitSelectionMode();
     } catch (error) {
       console.error("Error deleting contracts:", error);
       toast.error("계약서 삭제에 실패했습니다.");
     }
     setShowDeleteDialog(false);
+  };
+
+  const handleRestore = async () => {
+    try {
+      await restoreContractsForEmployer(Array.from(selectedIds));
+      const restoredContracts = trashedContracts
+        .filter(c => selectedIds.has(c.id))
+        .map(c => ({ ...c, employer_deleted_at: null }));
+      setContracts(prev => [...restoredContracts, ...prev]);
+      setTrashedContracts(prev => prev.filter(c => !selectedIds.has(c.id)));
+      toast.success(`${selectedIds.size}개의 계약서가 복원되었습니다.`);
+      exitSelectionMode();
+      
+      // Exit trash view if empty
+      if (trashedContracts.length - selectedIds.size === 0) {
+        setIsTrashView(false);
+      }
+    } catch (error) {
+      console.error("Error restoring contracts:", error);
+      toast.error("계약서 복원에 실패했습니다.");
+    }
   };
 
   const handleCreateFolder = async () => {
@@ -691,9 +731,15 @@ export default function EmployerDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            {currentFolderId ? (
+            {currentFolderId || isTrashView ? (
               <button
-                onClick={() => setCurrentFolderId(null)}
+                onClick={() => {
+                  if (isTrashView) {
+                    exitTrashView();
+                  } else {
+                    setCurrentFolderId(null);
+                  }
+                }}
                 className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-2"
               >
                 <ChevronRight className="w-4 h-4 rotate-180" />
@@ -703,7 +749,12 @@ export default function EmployerDashboard() {
               <p className="text-body text-muted-foreground mb-1">환영합니다</p>
             )}
             <h1 className="text-title text-foreground flex items-center gap-2">
-              {currentFolderId ? (
+              {isTrashView ? (
+                <>
+                  <Trash2 className="w-6 h-6 text-destructive" />
+                  휴지통
+                </>
+              ) : currentFolderId ? (
                 <>
                   <FolderOpen className={`w-6 h-6 ${getFolderColorClass(currentFolder?.color || 'gray').split(' ')[1]}`} />
                   {currentFolder?.name}
@@ -746,79 +797,106 @@ export default function EmployerDashboard() {
                 <span className="font-semibold">{selectedIds.size}개 선택됨</span>
               </div>
               <button 
-                onClick={handleSelectAll}
+                onClick={() => {
+                  if (isTrashView) {
+                    if (selectedIds.size === trashedContracts.length) {
+                      setSelectedIds(new Set());
+                    } else {
+                      setSelectedIds(new Set(trashedContracts.map(c => c.id)));
+                    }
+                  } else {
+                    handleSelectAll();
+                  }
+                }}
                 className="text-primary font-medium"
               >
-                {selectedIds.size === filteredContracts.length ? '선택 해제' : '전체 선택'}
+                {selectedIds.size === (isTrashView ? trashedContracts : filteredContracts).length ? '선택 해제' : '전체 선택'}
               </button>
             </div>
             
-            {/* Sort Options */}
+            {/* Selection Actions */}
             <div className="px-6 py-3 flex items-center gap-2 border-t border-border overflow-x-auto">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              {isTrashView ? (
+                // Trash view actions
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRestore}
+                  disabled={selectedIds.size === 0}
+                  className="flex items-center gap-2 text-primary hover:text-primary flex-shrink-0"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  복원
+                </Button>
+              ) : (
+                // Normal view actions
+                <>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 flex-shrink-0"
+                      >
+                        <ArrowUpDown className="w-4 h-4" />
+                        {getSortLabel(sortOption)}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel>정렬 기준</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setSortOption('newest')}>
+                        <Calendar className="w-4 h-4 mr-2" />
+                        최신순
+                        {sortOption === 'newest' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSortOption('oldest')}>
+                        <Calendar className="w-4 h-4 mr-2" />
+                        오래된순
+                        {sortOption === 'oldest' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setSortOption('name-asc')}>
+                        <User className="w-4 h-4 mr-2" />
+                        이름 (ㄱ-ㅎ)
+                        {sortOption === 'name-asc' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSortOption('name-desc')}>
+                        <User className="w-4 h-4 mr-2" />
+                        이름 (ㅎ-ㄱ)
+                        {sortOption === 'name-desc' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setSortOption('custom')}>
+                        <GripVertical className="w-4 h-4 mr-2" />
+                        직접 정렬 (드래그)
+                        {sortOption === 'custom' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => setShowMoveDialog(true)}
+                    disabled={selectedIds.size === 0}
                     className="flex items-center gap-2 flex-shrink-0"
                   >
-                    <ArrowUpDown className="w-4 h-4" />
-                    {getSortLabel(sortOption)}
+                    <Folder className="w-4 h-4" />
+                    이동
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuLabel>정렬 기준</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setSortOption('newest')}>
-                    <Calendar className="w-4 h-4 mr-2" />
-                    최신순
-                    {sortOption === 'newest' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortOption('oldest')}>
-                    <Calendar className="w-4 h-4 mr-2" />
-                    오래된순
-                    {sortOption === 'oldest' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setSortOption('name-asc')}>
-                    <User className="w-4 h-4 mr-2" />
-                    이름 (ㄱ-ㅎ)
-                    {sortOption === 'name-asc' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortOption('name-desc')}>
-                    <User className="w-4 h-4 mr-2" />
-                    이름 (ㅎ-ㄱ)
-                    {sortOption === 'name-desc' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setSortOption('custom')}>
-                    <GripVertical className="w-4 h-4 mr-2" />
-                    직접 정렬 (드래그)
-                    {sortOption === 'custom' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowMoveDialog(true)}
-                disabled={selectedIds.size === 0}
-                className="flex items-center gap-2 flex-shrink-0"
-              >
-                <Folder className="w-4 h-4" />
-                이동
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={selectedIds.size === 0}
-                className="flex items-center gap-2 text-destructive hover:text-destructive flex-shrink-0"
-              >
-                <Trash2 className="w-4 h-4" />
-                삭제
-              </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDeleteDialog(true)}
+                    disabled={selectedIds.size === 0}
+                    className="flex items-center gap-2 text-destructive hover:text-destructive flex-shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    삭제
+                  </Button>
+                </>
+              )}
             </div>
           </motion.div>
         )}
@@ -907,13 +985,116 @@ export default function EmployerDashboard() {
                   </motion.div>
                 );
               })}
+              
+              {/* Trash folder */}
+              {trashedContracts.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 + activeFolders.length * 0.05 }}
+                  className="flex-shrink-0"
+                >
+                  <div
+                    onClick={() => setIsTrashView(true)}
+                    className="w-32 p-3 rounded-xl bg-destructive/5 border border-destructive/20 cursor-pointer hover:bg-destructive/10 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-destructive/10 text-destructive">
+                        <Trash2 className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <p className="font-medium text-sm text-destructive">휴지통</p>
+                    <p className="text-xs text-destructive/70">{trashedContracts.length}개</p>
+                  </div>
+                </motion.div>
+              )}
             </div>
           </motion.div>
         </div>
       )}
 
-      {/* Contract List Header with Edit Button */}
-      {filteredContracts.length > 0 && (
+      {/* Trash View */}
+      {isTrashView && (
+        <div className="px-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            {/* Edit button for trash */}
+            {trashedContracts.length > 0 && !isSelectionMode && (
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => setIsSelectionMode(true)}
+                  className="text-sm text-primary font-medium"
+                >
+                  편집
+                </button>
+              </div>
+            )}
+            
+            {trashedContracts.length > 0 ? (
+              <div className="space-y-3">
+                {trashedContracts.map((contract, index) => (
+                  <motion.div
+                    key={contract.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + index * 0.05 }}
+                  >
+                    <CardSlide
+                      onClick={() => {
+                        if (isSelectionMode) {
+                          toggleSelection(contract.id);
+                        }
+                      }}
+                      className="p-4 opacity-75"
+                    >
+                      <div className="flex items-center gap-3">
+                        {isSelectionMode && (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedIds.has(contract.id)}
+                              onCheckedChange={() => toggleSelection(contract.id)}
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-muted">
+                          <FileText className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-semibold text-foreground truncate">
+                            {contract.worker_name}
+                          </p>
+                          {contract.business_name && (
+                            <p className="text-sm text-muted-foreground truncate mt-0.5">
+                              {contract.business_name}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <span className="text-xs text-muted-foreground">
+                          {getStatusBadge(contract.status)}
+                        </span>
+                      </div>
+                    </CardSlide>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Trash2 className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground">휴지통이 비어있습니다</p>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+
+      {/* Contract List Header with Edit Button - Only show when not in trash view */}
+      {!isTrashView && filteredContracts.length > 0 && (
         <div className="px-6 mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -936,8 +1117,8 @@ export default function EmployerDashboard() {
         </div>
       )}
 
-      {/* Pending Contracts */}
-      {pendingContracts.length > 0 && (
+      {/* Pending Contracts - Only show when not in trash view */}
+      {!isTrashView && pendingContracts.length > 0 && (
         <div className="px-6 mb-8">
           <motion.div
             initial={{ opacity: 0 }}
@@ -984,8 +1165,8 @@ export default function EmployerDashboard() {
         </div>
       )}
 
-      {/* Completed Contracts */}
-      {completedContracts.length > 0 && (
+      {/* Completed Contracts - Only show when not in trash view */}
+      {!isTrashView && completedContracts.length > 0 && (
         <div className="px-6 mb-8">
           <motion.div
             initial={{ opacity: 0 }}
