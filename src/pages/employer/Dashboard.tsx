@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,7 +8,8 @@ import { useAppStore } from "@/lib/store";
 import { 
   Plus, FileText, Clock, CheckCircle2, ChevronRight, Building2, 
   Trash2, FolderPlus, X, MoreVertical, Folder, Edit2, FolderOpen,
-  MessageCircle, Edit, MapPin, Calendar, Wallet, Briefcase
+  MessageCircle, Edit, MapPin, Calendar, Wallet, Briefcase, ArrowUpDown,
+  User, GripVertical
 } from "lucide-react";
 import { isContractEditable, getRemainingEditDays } from "@/lib/contract-utils";
 import { CardSlide } from "@/components/ui/card-slide";
@@ -35,6 +36,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -44,6 +47,23 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const FOLDER_COLORS = [
   { name: 'gray', class: 'bg-muted text-muted-foreground' },
@@ -53,6 +73,129 @@ const FOLDER_COLORS = [
   { name: 'purple', class: 'bg-purple-500/10 text-purple-500' },
   { name: 'red', class: 'bg-red-500/10 text-red-500' },
 ];
+
+type SortOption = 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'custom';
+
+interface SortableContractCardProps {
+  contract: Contract;
+  isSelectionMode: boolean;
+  selectedIds: Set<string>;
+  toggleSelection: (id: string) => void;
+  onPreview: (contract: Contract) => void;
+  getStatusBadge: (status: string) => React.ReactNode;
+  navigate: (path: string) => void;
+  isDemo: boolean;
+  section: 'pending' | 'completed';
+}
+
+function SortableContractCard({ 
+  contract, 
+  isSelectionMode, 
+  selectedIds, 
+  toggleSelection, 
+  onPreview,
+  getStatusBadge,
+  navigate,
+  isDemo,
+  section
+}: SortableContractCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: contract.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const isPending = section === 'pending';
+  const canEdit = isDemo || isContractEditable(contract.created_at);
+  const remainingDays = getRemainingEditDays(contract.created_at);
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <CardSlide
+        onClick={() => {
+          if (isSelectionMode) {
+            toggleSelection(contract.id);
+          } else {
+            onPreview(contract);
+          }
+        }}
+        className="p-4"
+      >
+        <div className="flex items-center gap-3">
+          {/* Drag handle - only in selection mode */}
+          {isSelectionMode && (
+            <div 
+              {...attributes} 
+              {...listeners}
+              className="flex-shrink-0 cursor-grab active:cursor-grabbing touch-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="w-5 h-5 text-muted-foreground" />
+            </div>
+          )}
+          
+          {/* Selection checkbox */}
+          {isSelectionMode && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={selectedIds.has(contract.id)}
+                onCheckedChange={() => toggleSelection(contract.id)}
+              />
+            </div>
+          )}
+          
+          {/* Icon */}
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+            isPending ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-green-100 dark:bg-green-900/30'
+          }`}>
+            <FileText className={`w-5 h-5 ${isPending ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`} />
+          </div>
+          
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-semibold text-foreground truncate">
+              {contract.worker_name}
+            </p>
+            {contract.business_name && (
+              <p className="text-sm text-muted-foreground truncate mt-0.5">
+                {contract.business_name}
+              </p>
+            )}
+          </div>
+          
+          {/* Right side */}
+          {!isSelectionMode && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {getStatusBadge(contract.status)}
+              {isPending && canEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/employer/create?edit=${contract.id}`);
+                  }}
+                  className="px-3 py-1.5 rounded-full bg-primary text-white text-xs font-medium hover:bg-primary/90 transition-colors"
+                  title={`수정 가능: ${remainingDays}일 남음`}
+                >
+                  수정
+                </button>
+              )}
+              <ChevronRight className="w-5 h-5 text-muted-foreground/40" />
+            </div>
+          )}
+        </div>
+      </CardSlide>
+    </div>
+  );
+}
 
 export default function EmployerDashboard() {
   const navigate = useNavigate();
@@ -71,6 +214,10 @@ export default function EmployerDashboard() {
   // Folder view
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   
+  // Sorting
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
+  const [customOrder, setCustomOrder] = useState<string[]>([]);
+  
   // Dialogs
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showFolderDialog, setShowFolderDialog] = useState(false);
@@ -81,6 +228,18 @@ export default function EmployerDashboard() {
   
   // Contract preview modal
   const [previewContract, setPreviewContract] = useState<Contract | null>(null);
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -101,6 +260,9 @@ export default function EmployerDashboard() {
         ]);
         setContracts(contractsData);
         setFolders(foldersData);
+        
+        // Initialize custom order
+        setCustomOrder(contractsData.map(c => c.id));
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("데이터를 불러오는데 실패했습니다.");
@@ -146,8 +308,45 @@ export default function EmployerDashboard() {
     ? displayContracts.filter(c => c.folder_id === currentFolderId)
     : displayContracts.filter(c => !c.folder_id);
 
-  const pendingContracts = filteredContracts.filter((c) => c.status === 'pending' || c.status === 'draft');
-  const completedContracts = filteredContracts.filter((c) => c.status === 'completed');
+  const pendingContractsRaw = filteredContracts.filter((c) => c.status === 'pending' || c.status === 'draft');
+  const completedContractsRaw = filteredContracts.filter((c) => c.status === 'completed');
+
+  // Apply sorting
+  const sortContracts = (contractList: Contract[]) => {
+    const sorted = [...contractList];
+    
+    switch (sortOption) {
+      case 'newest':
+        return sorted.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      case 'oldest':
+        return sorted.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      case 'name-asc':
+        return sorted.sort((a, b) => 
+          a.worker_name.localeCompare(b.worker_name, 'ko')
+        );
+      case 'name-desc':
+        return sorted.sort((a, b) => 
+          b.worker_name.localeCompare(a.worker_name, 'ko')
+        );
+      case 'custom':
+        return sorted.sort((a, b) => {
+          const indexA = customOrder.indexOf(a.id);
+          const indexB = customOrder.indexOf(b.id);
+          if (indexA === -1) return 1;
+          if (indexB === -1) return -1;
+          return indexA - indexB;
+        });
+      default:
+        return sorted;
+    }
+  };
+
+  const pendingContracts = useMemo(() => sortContracts(pendingContractsRaw), [pendingContractsRaw, sortOption, customOrder]);
+  const completedContracts = useMemo(() => sortContracts(completedContractsRaw), [completedContractsRaw, sortOption, customOrder]);
 
   const displayName = isDemo ? demoUser?.name : profile?.name;
   const activeFolders = isDemo ? demoFolders : folders;
@@ -178,7 +377,6 @@ export default function EmployerDashboard() {
 
   const handleDelete = async () => {
     if (isDemo) {
-      // 데모 모드에서는 로컬 상태만 업데이트
       toast.success(`${selectedIds.size}개의 계약서가 삭제되었습니다. (데모)`);
       exitSelectionMode();
       setShowDeleteDialog(false);
@@ -188,6 +386,7 @@ export default function EmployerDashboard() {
     try {
       await deleteContracts(Array.from(selectedIds));
       setContracts(prev => prev.filter(c => !selectedIds.has(c.id)));
+      setCustomOrder(prev => prev.filter(id => !selectedIds.has(id)));
       toast.success(`${selectedIds.size}개의 계약서가 삭제되었습니다.`);
       exitSelectionMode();
     } catch (error) {
@@ -201,7 +400,6 @@ export default function EmployerDashboard() {
     if (!newFolderName.trim()) return;
     
     if (isDemo) {
-      // 데모 모드에서는 로컬 상태만 업데이트
       const newFolder: ContractFolder = {
         id: `demo-folder-${Date.now()}`,
         user_id: 'demo',
@@ -279,7 +477,6 @@ export default function EmployerDashboard() {
 
   const handleMoveToFolder = async (folderId: string | null) => {
     if (isDemo) {
-      // 데모 모드에서는 폴더 이동 시뮬레이션
       const folderName = folderId ? activeFolders.find(f => f.id === folderId)?.name : '전체';
       toast.success(`${selectedIds.size}개의 계약서를 '${folderName}'(으)로 이동했습니다. (데모)`);
       exitSelectionMode();
@@ -302,10 +499,34 @@ export default function EmployerDashboard() {
     }
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      setSortOption('custom');
+      setCustomOrder((items) => {
+        const allIds = filteredContracts.map(c => c.id);
+        const currentItems = items.length > 0 ? items : allIds;
+        
+        const oldIndex = currentItems.indexOf(active.id as string);
+        const newIndex = currentItems.indexOf(over.id as string);
+        
+        if (oldIndex === -1 || newIndex === -1) {
+          const oldIdx = allIds.indexOf(active.id as string);
+          const newIdx = allIds.indexOf(over.id as string);
+          return arrayMove(allIds, oldIdx, newIdx);
+        }
+        
+        return arrayMove(currentItems, oldIndex, newIndex);
+      });
+      toast.success("순서가 변경되었습니다.");
+    }
+  };
+
   const openEditFolder = (folder: ContractFolder) => {
     setEditingFolder(folder);
     setNewFolderName(folder.name);
-    setNewFolderColor(folder.color);
+    setNewFolderColor(folder.color || 'gray');
     setShowFolderDialog(true);
   };
 
@@ -337,6 +558,16 @@ export default function EmployerDashboard() {
         );
       default:
         return null;
+    }
+  };
+
+  const getSortLabel = (option: SortOption) => {
+    switch (option) {
+      case 'newest': return '최신순';
+      case 'oldest': return '오래된순';
+      case 'name-asc': return '이름 (ㄱ-ㅎ)';
+      case 'name-desc': return '이름 (ㅎ-ㄱ)';
+      case 'custom': return '직접 정렬';
     }
   };
 
@@ -496,32 +727,69 @@ export default function EmployerDashboard() {
                 {selectedIds.size === filteredContracts.length ? '선택 해제' : '전체 선택'}
               </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Selection Actions */}
-      <AnimatePresence>
-        {isSelectionMode && selectedIds.size > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border max-w-md mx-auto p-4"
-          >
-            <div className="flex gap-3">
+            
+            {/* Sort Options */}
+            <div className="px-6 py-3 flex items-center gap-2 border-t border-border overflow-x-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 flex-shrink-0"
+                  >
+                    <ArrowUpDown className="w-4 h-4" />
+                    {getSortLabel(sortOption)}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuLabel>정렬 기준</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSortOption('newest')}>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    최신순
+                    {sortOption === 'newest' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption('oldest')}>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    오래된순
+                    {sortOption === 'oldest' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSortOption('name-asc')}>
+                    <User className="w-4 h-4 mr-2" />
+                    이름 (ㄱ-ㅎ)
+                    {sortOption === 'name-asc' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption('name-desc')}>
+                    <User className="w-4 h-4 mr-2" />
+                    이름 (ㅎ-ㄱ)
+                    {sortOption === 'name-desc' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSortOption('custom')}>
+                    <GripVertical className="w-4 h-4 mr-2" />
+                    직접 정렬 (드래그)
+                    {sortOption === 'custom' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <Button
                 variant="outline"
-                className="flex-1 gap-2"
+                size="sm"
                 onClick={() => setShowMoveDialog(true)}
+                disabled={selectedIds.size === 0}
+                className="flex items-center gap-2 flex-shrink-0"
               >
                 <Folder className="w-4 h-4" />
                 이동
               </Button>
               <Button
-                variant="destructive"
-                className="flex-1 gap-2"
+                variant="outline"
+                size="sm"
                 onClick={() => setShowDeleteDialog(true)}
+                disabled={selectedIds.size === 0}
+                className="flex items-center gap-2 text-destructive hover:text-destructive flex-shrink-0"
               >
                 <Trash2 className="w-4 h-4" />
                 삭제
@@ -578,7 +846,7 @@ export default function EmployerDashboard() {
                       className="w-32 p-3 rounded-xl bg-card border border-border cursor-pointer hover:bg-muted/50 transition-colors"
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getFolderColorClass(folder.color)}`}>
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getFolderColorClass(folder.color || 'gray')}`}>
                           <Folder className="w-5 h-5" />
                         </div>
                         <DropdownMenu>
@@ -623,9 +891,16 @@ export default function EmployerDashboard() {
       {filteredContracts.length > 0 && (
         <div className="px-6 mb-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-heading font-semibold text-foreground">
-              {currentFolderId ? '계약서' : '전체 계약서'}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-heading font-semibold text-foreground">
+                {currentFolderId ? '계약서' : '전체 계약서'}
+              </h2>
+              {!isSelectionMode && (
+                <span className="text-xs text-muted-foreground">
+                  ({getSortLabel(sortOption)})
+                </span>
+              )}
+            </div>
             <button
               onClick={() => setIsSelectionMode(!isSelectionMode)}
               className="text-sm text-primary font-medium"
@@ -645,11 +920,41 @@ export default function EmployerDashboard() {
             transition={{ delay: 0.2 }}
           >
             <h3 className="text-sm font-medium text-muted-foreground mb-3">진행 중</h3>
-            <div className="space-y-3">
-              {pendingContracts.map((contract, index) => 
-                renderContractCard(contract, index, 'pending')
-              )}
-            </div>
+            {isSelectionMode && sortOption === 'custom' ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={pendingContracts.map(c => c.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {pendingContracts.map((contract) => (
+                      <SortableContractCard
+                        key={contract.id}
+                        contract={contract}
+                        isSelectionMode={isSelectionMode}
+                        selectedIds={selectedIds}
+                        toggleSelection={toggleSelection}
+                        onPreview={setPreviewContract}
+                        getStatusBadge={getStatusBadge}
+                        navigate={navigate}
+                        isDemo={isDemo}
+                        section="pending"
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <div className="space-y-3">
+                {pendingContracts.map((contract, index) => 
+                  renderContractCard(contract, index, 'pending')
+                )}
+              </div>
+            )}
           </motion.div>
         </div>
       )}
@@ -663,11 +968,41 @@ export default function EmployerDashboard() {
             transition={{ delay: 0.4 }}
           >
             <h3 className="text-sm font-medium text-muted-foreground mb-3">완료</h3>
-            <div className="space-y-3">
-              {completedContracts.map((contract, index) => 
-                renderContractCard(contract, index, 'completed')
-              )}
-            </div>
+            {isSelectionMode && sortOption === 'custom' ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={completedContracts.map(c => c.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {completedContracts.map((contract) => (
+                      <SortableContractCard
+                        key={contract.id}
+                        contract={contract}
+                        isSelectionMode={isSelectionMode}
+                        selectedIds={selectedIds}
+                        toggleSelection={toggleSelection}
+                        onPreview={setPreviewContract}
+                        getStatusBadge={getStatusBadge}
+                        navigate={navigate}
+                        isDemo={isDemo}
+                        section="completed"
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <div className="space-y-3">
+                {completedContracts.map((contract, index) => 
+                  renderContractCard(contract, index, 'completed')
+                )}
+              </div>
+            )}
           </motion.div>
         </div>
       )}
@@ -689,8 +1024,8 @@ export default function EmployerDashboard() {
         </motion.div>
       )}
 
-      {/* Spacer for bottom actions */}
-      {isSelectionMode && selectedIds.size > 0 && <div className="h-24" />}
+      {/* Spacer for selection mode */}
+      {isSelectionMode && <div className="h-32" />}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -791,7 +1126,7 @@ export default function EmployerDashboard() {
                 onClick={() => handleMoveToFolder(folder.id)}
                 className="w-full p-3 rounded-lg hover:bg-muted flex items-center gap-3 text-left transition-colors"
               >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getFolderColorClass(folder.color)}`}>
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getFolderColorClass(folder.color || 'gray')}`}>
                   <Folder className="w-5 h-5" />
                 </div>
                 <span className="font-medium">{folder.name}</span>
@@ -899,28 +1234,28 @@ export default function EmployerDashboard() {
                   )}
                 </div>
                 
-                <DialogFooter className="flex gap-2">
+                <DialogFooter className="flex-col gap-2 sm:flex-col">
                   {isPending && canEdit && (
-                    <Button
-                      variant="outline"
+                    <Button 
+                      variant="outline" 
+                      className="w-full gap-2"
                       onClick={() => {
                         setPreviewContract(null);
                         navigate(`/employer/create?edit=${previewContract.id}`);
                       }}
-                      className="flex-1"
                     >
-                      <Edit className="w-4 h-4 mr-2" />
-                      수정
+                      <Edit className="w-4 h-4" />
+                      수정하기
                     </Button>
                   )}
-                  <Button
+                  <Button 
+                    className="w-full"
                     onClick={() => {
                       setPreviewContract(null);
-                      navigate(`/employer/contract/${previewContract.id}`);
+                      navigate(`/employer/preview/${previewContract.id}`);
                     }}
-                    className="flex-1"
                   >
-                    상세보기
+                    계약서 보기
                   </Button>
                 </DialogFooter>
               </>
