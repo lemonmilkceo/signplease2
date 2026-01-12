@@ -8,7 +8,7 @@ import { useAppStore } from "@/lib/store";
 import { 
   Plus, FileText, Clock, CheckCircle2, ChevronRight, Building2, 
   Trash2, FolderPlus, X, MoreVertical, Folder, Edit2, FolderOpen,
-  MessageCircle, Edit
+  MessageCircle, Edit, MapPin, Calendar, Wallet, Briefcase
 } from "lucide-react";
 import { isContractEditable, getRemainingEditDays } from "@/lib/contract-utils";
 import { CardSlide } from "@/components/ui/card-slide";
@@ -78,6 +78,9 @@ export default function EmployerDashboard() {
   const [editingFolder, setEditingFolder] = useState<ContractFolder | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderColor, setNewFolderColor] = useState('gray');
+  
+  // Contract preview modal
+  const [previewContract, setPreviewContract] = useState<Contract | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -355,7 +358,7 @@ export default function EmployerDashboard() {
             if (isSelectionMode) {
               toggleSelection(contract.id);
             } else {
-              navigate(`/employer/contract/${contract.id}`);
+              setPreviewContract(contract);
             }
           }}
           className="p-4"
@@ -810,6 +813,134 @@ export default function EmployerDashboard() {
               </button>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contract Preview Modal */}
+      <Dialog open={!!previewContract} onOpenChange={(open) => !open && setPreviewContract(null)}>
+        <DialogContent className="max-w-sm mx-auto">
+          {previewContract && (() => {
+            const canEdit = isDemo || isContractEditable(previewContract.created_at);
+            const remainingDays = getRemainingEditDays(previewContract.created_at);
+            const isPending = previewContract.status === 'pending' || previewContract.status === 'draft';
+            
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      isPending ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-green-100 dark:bg-green-900/30'
+                    }`}>
+                      <FileText className={`w-5 h-5 ${isPending ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`} />
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold">{previewContract.worker_name}</p>
+                      {previewContract.business_name && (
+                        <p className="text-sm text-muted-foreground font-normal">{previewContract.business_name}</p>
+                      )}
+                    </div>
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  {/* 시급 */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                      <Wallet className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">시급</p>
+                      <p className="text-sm font-semibold">{previewContract.hourly_wage.toLocaleString()}원</p>
+                    </div>
+                  </div>
+                  
+                  {/* 근무일 */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">근무일</p>
+                      <p className="text-sm font-semibold">
+                        {previewContract.work_days.length > 0 
+                          ? `주 ${previewContract.work_days.length}일 (${previewContract.work_days.join(', ')})`
+                          : '미정'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* 근무시간 */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">근무시간</p>
+                      <p className="text-sm font-semibold">{previewContract.work_start_time} ~ {previewContract.work_end_time}</p>
+                    </div>
+                  </div>
+                  
+                  {/* 근무지 */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">근무지</p>
+                      <p className="text-sm font-semibold truncate">{previewContract.work_location || '미정'}</p>
+                    </div>
+                  </div>
+                  
+                  {/* 업무내용 */}
+                  {previewContract.job_description && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                        <Briefcase className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground">업무내용</p>
+                        <p className="text-sm font-semibold truncate">{previewContract.job_description}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 수정 가능 기간 안내 */}
+                  {isPending && canEdit && remainingDays > 0 && (
+                    <div className="p-3 rounded-xl bg-primary/5 border border-primary/20">
+                      <p className="text-xs text-primary">
+                        ✏️ 수정 가능 기간: <strong>{remainingDays}일</strong> 남음
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                <DialogFooter className="flex gap-2">
+                  {isPending && canEdit && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setPreviewContract(null);
+                        navigate(`/employer/create?edit=${previewContract.id}`);
+                      }}
+                      className="flex-1"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      수정
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => {
+                      setPreviewContract(null);
+                      navigate(`/employer/contract/${previewContract.id}`);
+                    }}
+                    className="flex-1"
+                  >
+                    상세보기
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
