@@ -52,14 +52,14 @@ export function SupportChat() {
       content: '안녕하세요! 싸인해주세요 고객센터입니다. 무엇을 도와드릴까요?'
     }
   ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // 온보딩/역할선택 화면에서는 숨김
   const hiddenPaths = ['/', '/select-role'];
   if (hiddenPaths.includes(location.pathname)) {
     return null;
   }
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
