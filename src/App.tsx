@@ -14,6 +14,7 @@ import CreateContract from "./pages/employer/CreateContract";
 import ContractPreview from "./pages/employer/ContractPreview";
 import WorkerDashboard from "./pages/worker/Dashboard";
 import WorkerContractView from "./pages/worker/ContractView";
+import Pricing from "./pages/Pricing";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,9 @@ const App = () => (
               {/* Worker Routes */}
               <Route path="/worker" element={<WorkerDashboard />} />
               <Route path="/worker/contract/:id" element={<WorkerContractView />} />
+              
+              {/* Pricing */}
+              <Route path="/pricing" element={<Pricing />} />
               
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
