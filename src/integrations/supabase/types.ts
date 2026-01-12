@@ -155,6 +155,7 @@ export type Database = {
           business_size: string | null
           contract_content: string | null
           created_at: string
+          employer_deleted_at: string | null
           employer_id: string
           employer_name: string
           employer_signature: string | null
@@ -185,6 +186,7 @@ export type Database = {
           business_size?: string | null
           contract_content?: string | null
           created_at?: string
+          employer_deleted_at?: string | null
           employer_id: string
           employer_name: string
           employer_signature?: string | null
@@ -215,6 +217,7 @@ export type Database = {
           business_size?: string | null
           contract_content?: string | null
           created_at?: string
+          employer_deleted_at?: string | null
           employer_id?: string
           employer_name?: string
           employer_signature?: string | null
