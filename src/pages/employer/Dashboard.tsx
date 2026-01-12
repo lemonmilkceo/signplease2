@@ -539,30 +539,15 @@ export default function EmployerDashboard() {
           transition={{ delay: 0.1 }}
           className="flex gap-3"
         >
-<Button
+          <Button
             variant="toss"
             size="full"
             onClick={() => navigate('/employer/create')}
-            className="gap-3 flex-1"
+            className="gap-3"
           >
             <Plus className="w-5 h-5" />
             새 계약서 작성
           </Button>
-          {!isDemo && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                setEditingFolder(null);
-                setNewFolderName('');
-                setNewFolderColor('gray');
-                setShowFolderDialog(true);
-              }}
-              className="flex-shrink-0"
-            >
-              <FolderPlus className="w-5 h-5" />
-            </Button>
-          )}
         </motion.div>
       </div>
 
