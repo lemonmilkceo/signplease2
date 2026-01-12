@@ -90,6 +90,7 @@ export default function WorkerContractView() {
         workStartTime: contract.work_start_time,
         workEndTime: contract.work_end_time,
         workDays: contract.work_days,
+        workDaysPerWeek: contract.work_days?.length,
         workLocation: contract.work_location,
         businessName: contract.business_name || undefined,
         jobDescription: contract.job_description || undefined,
