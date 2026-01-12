@@ -675,58 +675,56 @@ export default function ContractPreview() {
               </p>
             </div>
 
-            {/* AI 노무사 검토 Button - 업셀링 */}
+            {/* AI 노무사 검토 Button */}
             <motion.button
               onClick={handleGetLegalAdvice}
               disabled={isLoadingReviews}
-              className="w-full p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-900/30 dark:via-orange-900/20 dark:to-yellow-900/20 border-2 border-amber-300 dark:border-amber-700 flex items-center gap-3 hover:shadow-lg hover:border-amber-400 transition-all relative overflow-hidden disabled:opacity-50"
+              className="w-full p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-700 hover:shadow-lg hover:border-amber-400 transition-all relative overflow-hidden disabled:opacity-50"
               whileTap={{ scale: 0.98 }}
             >
               {/* 반짝이는 효과 */}
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                 animate={{ x: ['-100%', '100%'] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
               />
               
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md">
-                <Scale className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1 text-left relative z-10">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <p className="text-body-lg font-bold text-amber-800 dark:text-amber-200">
-                    AI 노무사 검토
-                  </p>
-                  <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-[10px] font-bold text-white uppercase tracking-wide">
-                    PRO
-                  </span>
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md flex-shrink-0">
+                  <Scale className="w-5 h-5 text-white" />
                 </div>
-                <p className="text-caption text-amber-700/80 dark:text-amber-300/80">
-                  전문 노무사 수준의 법적 검토를 받아보세요
-                </p>
-                <div className="flex items-center gap-2 mt-1.5">
-                  {isLoadingReviews ? (
-                    <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-[10px] font-semibold text-gray-500">
-                      로딩중...
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-body font-bold text-amber-800 dark:text-amber-200">
+                      AI 노무사 검토
+                    </p>
+                    <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-[9px] font-bold text-white">
+                      PRO
                     </span>
-                  ) : remainingReviews > 0 ? (
-                    <span className="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 text-[10px] font-semibold text-green-700 dark:text-green-300">
-                      🎁 무료 {remainingReviews}회 남음
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mt-1">
+                    {isLoadingReviews ? (
+                      <span className="text-xs text-muted-foreground">확인 중...</span>
+                    ) : remainingReviews > 0 ? (
+                      <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                        무료 {remainingReviews}회 남음
+                      </span>
+                    ) : (
+                      <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                        무료 소진
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      · 추가 1,000원/회
                     </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/50 text-[10px] font-semibold text-red-700 dark:text-red-300">
-                      ⚠️ 무료 소진 - 충전 필요
-                    </span>
-                  )}
-                  <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70">
-                    추가 1회 1,000원
-                  </span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-col items-center gap-1 relative z-10">
-                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-200 dark:bg-amber-800/60">
-                  <Zap className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
-                  <span className="text-xs font-bold text-amber-700 dark:text-amber-300">3초</span>
+                
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-800/50 flex-shrink-0">
+                  <Zap className="w-3 h-3 text-amber-600 dark:text-amber-300" />
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">3초</span>
                 </div>
               </div>
             </motion.button>

@@ -216,7 +216,7 @@ export default function CreateContract() {
     try {
       if (isDemo) {
         // Demo mode - simulate AI generation
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
         
         if (isEditing) {
           // Update existing demo contract
