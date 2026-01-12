@@ -173,6 +173,7 @@ export type Database = {
           work_end_time: string
           work_location: string
           work_start_time: string
+          worker_deleted_at: string | null
           worker_id: string | null
           worker_name: string
           worker_signature: string | null
@@ -202,6 +203,7 @@ export type Database = {
           work_end_time: string
           work_location: string
           work_start_time: string
+          worker_deleted_at?: string | null
           worker_id?: string | null
           worker_name: string
           worker_signature?: string | null
@@ -231,6 +233,7 @@ export type Database = {
           work_end_time?: string
           work_location?: string
           work_start_time?: string
+          worker_deleted_at?: string | null
           worker_id?: string | null
           worker_name?: string
           worker_signature?: string | null

@@ -48,6 +48,7 @@ export interface Contract {
   overtime_per_hour?: number | null;
   holiday_per_day?: number | null;
   annual_leave_per_day?: number | null;
+  worker_deleted_at?: string | null;
 }
 
 export interface ContractFolder {
@@ -225,7 +226,7 @@ export async function explainTerm(term: string, context?: string): Promise<strin
   return response.data.explanation;
 }
 
-// Delete a contract
+// Delete a contract (hard delete - for employers)
 export async function deleteContract(contractId: string): Promise<void> {
   const { error } = await supabase
     .from('contracts')
@@ -237,11 +238,25 @@ export async function deleteContract(contractId: string): Promise<void> {
   }
 }
 
-// Delete multiple contracts
+// Delete multiple contracts (hard delete - for employers)
 export async function deleteContracts(contractIds: string[]): Promise<void> {
   const { error } = await supabase
     .from('contracts')
     .delete()
+    .in('id', contractIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Soft delete contracts for workers (sets worker_deleted_at timestamp)
+// This hides the contract from worker's dashboard but keeps it visible for employers
+// and preserves data for career history features
+export async function softDeleteContractsForWorker(contractIds: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('contracts')
+    .update({ worker_deleted_at: new Date().toISOString() })
     .in('id', contractIds);
 
   if (error) {
