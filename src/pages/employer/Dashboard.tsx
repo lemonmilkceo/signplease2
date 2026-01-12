@@ -17,7 +17,8 @@ import { LoadingSpinner } from "@/components/ui/loading";
 import { 
   getEmployerContracts, Contract, getFolders, ContractFolder, 
   deleteContracts, createFolder, deleteFolder, moveContractsToFolder, updateFolder,
-  softDeleteContractsForEmployer, restoreContractsForEmployer, getEmployerTrashedContracts
+  softDeleteContractsForEmployer, restoreContractsForEmployer, getEmployerTrashedContracts,
+  permanentDeleteContractsForEmployer
 } from "@/lib/contract-api";
 import { getUserPreferences, saveUserPreferences, SortOption } from "@/lib/preferences-api";
 import { CreditsBadge } from "@/components/CreditsBadge";
@@ -226,6 +227,7 @@ export default function EmployerDashboard() {
   
   // Dialogs
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPermanentDeleteDialog, setShowPermanentDeleteDialog] = useState(false);
   const [showFolderDialog, setShowFolderDialog] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [editingFolder, setEditingFolder] = useState<ContractFolder | null>(null);
@@ -458,6 +460,31 @@ export default function EmployerDashboard() {
     } catch (error) {
       console.error("Error restoring contracts:", error);
       toast.error("계약서 복원에 실패했습니다.");
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (isDemo) {
+      toast.success(`${selectedIds.size}개의 계약서가 영구 삭제되었습니다. (데모)`);
+      exitSelectionMode();
+      setShowPermanentDeleteDialog(false);
+      return;
+    }
+
+    try {
+      await permanentDeleteContractsForEmployer(Array.from(selectedIds));
+      setTrashedContracts(prev => prev.filter(c => !selectedIds.has(c.id)));
+      toast.success(`${selectedIds.size}개의 계약서가 영구 삭제되었습니다.`);
+      exitSelectionMode();
+      setShowPermanentDeleteDialog(false);
+      
+      // Exit trash view if empty
+      if (trashedContracts.length - selectedIds.size === 0) {
+        setIsTrashView(false);
+      }
+    } catch (error) {
+      console.error("Error permanently deleting contracts:", error);
+      toast.error("계약서 영구 삭제에 실패했습니다.");
     }
   };
 
@@ -818,16 +845,28 @@ export default function EmployerDashboard() {
             <div className="px-6 py-3 flex items-center gap-2 border-t border-border overflow-x-auto">
               {isTrashView ? (
                 // Trash view actions
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRestore}
-                  disabled={selectedIds.size === 0}
-                  className="flex items-center gap-2 text-primary hover:text-primary flex-shrink-0"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  복원
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRestore}
+                    disabled={selectedIds.size === 0}
+                    className="flex items-center gap-2 text-primary hover:text-primary flex-shrink-0"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    복원
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPermanentDeleteDialog(true)}
+                    disabled={selectedIds.size === 0}
+                    className="flex items-center gap-2 text-destructive hover:text-destructive flex-shrink-0"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    영구 삭제
+                  </Button>
+                </>
               ) : (
                 // Normal view actions
                 <>
@@ -1246,6 +1285,24 @@ export default function EmployerDashboard() {
             <AlertDialogCancel>취소</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Permanent Delete Confirmation Dialog */}
+      <AlertDialog open={showPermanentDeleteDialog} onOpenChange={setShowPermanentDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>계약서 영구 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              선택한 {selectedIds.size}개의 계약서를 영구 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePermanentDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              영구 삭제
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
