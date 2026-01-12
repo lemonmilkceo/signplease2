@@ -31,6 +31,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Support from "./pages/Support";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -73,6 +74,7 @@ const App = () => (
               <Route path="/payment-history" element={<PaymentHistory />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/support" element={<Support />} />
               
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
