@@ -911,9 +911,9 @@ export default function ContractPreview() {
 
               {/* Modal Footer */}
               <div className="p-6 border-t border-border space-y-3">
-                {legalAdvice && legalAdvice.grade !== '완벽' && (
+              {legalAdvice && legalAdvice.grade !== '완벽' && (
                   <>
-                    {contract && isContractEditable(contract.created_at) ? (
+                    {contract && (isDemo || isContractEditable(contract.created_at)) ? (
                       <Button
                         size="full"
                         onClick={() => {
@@ -924,6 +924,9 @@ export default function ContractPreview() {
                       >
                         <Edit className="w-4 h-4" />
                         계약서 수정하기
+                        {isDemo && (
+                          <span className="text-xs opacity-80 ml-1">(데모)</span>
+                        )}
                       </Button>
                     ) : (
                       <div className="p-3 rounded-xl bg-muted border border-border text-center">
