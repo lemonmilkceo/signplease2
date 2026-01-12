@@ -679,7 +679,7 @@ export default function ContractPreview() {
             <motion.button
               onClick={handleGetLegalAdvice}
               disabled={isLoadingReviews}
-              className="w-full p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-700 hover:shadow-lg hover:border-amber-400 transition-all relative overflow-hidden disabled:opacity-50"
+              className="w-full p-5 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/20 border-2 border-amber-300 dark:border-amber-700 hover:shadow-lg hover:border-amber-400 transition-all relative overflow-hidden disabled:opacity-50"
               whileTap={{ scale: 0.98 }}
             >
               {/* 반짝이는 효과 */}
@@ -689,14 +689,14 @@ export default function ContractPreview() {
                 transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
               />
               
-              <div className="flex items-center gap-3 relative z-10">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md flex-shrink-0">
-                  <Scale className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md flex-shrink-0">
+                  <Scale className="w-6 h-6 text-white" />
                 </div>
                 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-body font-bold text-amber-800 dark:text-amber-200">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <p className="text-base font-bold text-amber-800 dark:text-amber-200">
                       AI 노무사 검토
                     </p>
                     <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-[9px] font-bold text-white">
@@ -704,27 +704,27 @@ export default function ContractPreview() {
                     </span>
                   </div>
                   
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     {isLoadingReviews ? (
-                      <span className="text-xs text-muted-foreground">확인 중...</span>
+                      <span className="text-sm text-muted-foreground">확인 중...</span>
                     ) : remainingReviews > 0 ? (
-                      <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">
                         무료 {remainingReviews}회 남음
                       </span>
                     ) : (
-                      <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                      <span className="text-sm font-medium text-red-600 dark:text-red-400">
                         무료 소진
                       </span>
                     )}
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                       · 추가 1,000원/회
                     </span>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-800/50 flex-shrink-0">
-                  <Zap className="w-3 h-3 text-amber-600 dark:text-amber-300" />
-                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">3초</span>
+                <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-100 dark:bg-amber-800/50 flex-shrink-0">
+                  <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-300" />
+                  <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">3초</span>
                 </div>
               </div>
             </motion.button>
