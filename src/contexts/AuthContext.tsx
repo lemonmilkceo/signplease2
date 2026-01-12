@@ -101,8 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      // Ignore session_not_found errors - session may already be expired
+      console.log('Sign out completed (session may have been expired)');
+    }
+    // Always clear local state regardless of API result
     setUser(null);
     setSession(null);
     setProfile(null);
