@@ -16,6 +16,8 @@ import ContractPreview from "./pages/employer/ContractPreview";
 import WorkerDashboard from "./pages/worker/Dashboard";
 import WorkerContractView from "./pages/worker/ContractView";
 import WorkerOnboarding from "./pages/WorkerOnboarding";
+import EmployerChat from "./pages/employer/Chat";
+import WorkerChat from "./pages/worker/Chat";
 import Pricing from "./pages/Pricing";
 import Profile from "./pages/Profile";
 import PaymentHistory from "./pages/PaymentHistory";
@@ -34,15 +36,17 @@ const App = () => (
               <Route path="/" element={<Onboarding />} />
               <Route path="/select-role" element={<SelectRole />} />
               
-              {/* Employer Routes */}
+{/* Employer Routes */}
               <Route path="/employer" element={<EmployerDashboard />} />
               <Route path="/employer/create" element={<CreateContract />} />
               <Route path="/employer/preview/:id" element={<ContractPreview />} />
+              <Route path="/employer/chat" element={<EmployerChat />} />
               <Route path="/employer/contract/:id" element={<ContractPreview />} />
               
-              {/* Worker Routes */}
+{/* Worker Routes */}
               <Route path="/worker" element={<WorkerDashboard />} />
               <Route path="/worker/onboarding" element={<WorkerOnboarding />} />
+              <Route path="/worker/chat" element={<WorkerChat />} />
               <Route path="/worker/contract/:id" element={<WorkerContractView />} />
               
               {/* Common Routes */}

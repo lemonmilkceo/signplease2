@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getContract, Contract } from "@/lib/contract-api";
-import { FileText, ChevronRight, Clock, CheckCircle2, Loader2, Building2, Wallet } from "lucide-react";
+import { FileText, ChevronRight, Clock, CheckCircle2, Loader2, Building2, Wallet, MessageCircle } from "lucide-react";
 import { CardSlide } from "@/components/ui/card-slide";
 import { supabase } from "@/integrations/supabase/client";
 import { AppDrawer } from "@/components/AppDrawer";
@@ -107,7 +107,15 @@ export default function WorkerDashboard() {
           </motion.div>
           
           {user && (
-            <AppDrawer userType="worker" />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/worker/chat')}
+                className="p-2 rounded-full hover:bg-muted transition-colors"
+              >
+                <MessageCircle className="w-5 h-5" />
+              </button>
+              <AppDrawer userType="worker" />
+            </div>
           )}
         </div>
       </div>
