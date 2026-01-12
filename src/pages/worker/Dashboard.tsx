@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Contract, getFolders, ContractFolder, 
-  deleteContracts, createFolder, deleteFolder, moveContractsToFolder, updateFolder 
+  softDeleteContractsForWorker, createFolder, deleteFolder, moveContractsToFolder, updateFolder 
 } from "@/lib/contract-api";
 import { getUserPreferences, saveUserPreferences, SortOption } from "@/lib/preferences-api";
 import { 
@@ -260,7 +260,10 @@ export default function WorkerDashboard() {
             index === self.findIndex((c) => c.id === contract.id)
         );
 
-        setContracts(uniqueContracts);
+        // Filter out soft-deleted contracts for the worker
+        const visibleContracts = uniqueContracts.filter(c => !c.worker_deleted_at);
+
+        setContracts(visibleContracts);
         
         // Fetch folders and preferences
         if (user) {
@@ -390,7 +393,8 @@ export default function WorkerDashboard() {
 
   const handleDelete = async () => {
     try {
-      await deleteContracts(Array.from(selectedIds));
+      // Use soft delete for workers - data is preserved for career history
+      await softDeleteContractsForWorker(Array.from(selectedIds));
       setContracts(prev => prev.filter(c => !selectedIds.has(c.id)));
       setCustomOrder(prev => prev.filter(id => !selectedIds.has(id)));
       toast.success(`${selectedIds.size}개의 계약서가 삭제되었습니다.`);
