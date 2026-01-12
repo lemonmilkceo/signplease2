@@ -206,6 +206,7 @@ export default function CreateContract() {
       hourlyWage: contractForm.hourlyWage || MINIMUM_WAGE_2026,
       startDate: contractForm.startDate || new Date().toISOString().split('T')[0],
       workDays: contractForm.workDays || [],
+      workDaysPerWeek: contractForm.workDaysPerWeek,
       workStartTime: contractForm.workStartTime || '09:00',
       workEndTime: contractForm.workEndTime || '18:00',
       workLocation: contractForm.workLocation || '',

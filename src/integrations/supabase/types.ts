@@ -169,6 +169,7 @@ export type Database = {
           status: string
           updated_at: string
           work_days: string[]
+          work_days_per_week: number | null
           work_end_time: string
           work_location: string
           work_start_time: string
@@ -197,6 +198,7 @@ export type Database = {
           status?: string
           updated_at?: string
           work_days?: string[]
+          work_days_per_week?: number | null
           work_end_time: string
           work_location: string
           work_start_time: string
@@ -225,6 +227,7 @@ export type Database = {
           status?: string
           updated_at?: string
           work_days?: string[]
+          work_days_per_week?: number | null
           work_end_time?: string
           work_location?: string
           work_start_time?: string
