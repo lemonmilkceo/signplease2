@@ -52,7 +52,7 @@ export default function Splash() {
         transition={{ delay: 0.6, duration: 0.8, ease: "easeOut" }}
       >
         복잡한 근로계약서,<br />
-        <span className="text-primary font-medium">이제 30초면 충분해요</span>
+        <span className="text-primary font-medium">이제 3분이면 충분해요</span>
       </motion.p>
 
       {/* Loading indicator */}
