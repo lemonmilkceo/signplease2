@@ -88,6 +88,7 @@ export default function ContractPreview() {
             created_at: demoContract.createdAt!,
             updated_at: demoContract.createdAt!,
             signed_at: null,
+            folder_id: null,
           });
           setIsSigned(!!demoContract.employerSignature);
         }

@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      contract_folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contract_invitations: {
         Row: {
           accepted_at: string | null
@@ -60,6 +87,7 @@ export type Database = {
           employer_id: string
           employer_name: string
           employer_signature: string | null
+          folder_id: string | null
           hourly_wage: number
           id: string
           job_description: string | null
@@ -82,6 +110,7 @@ export type Database = {
           employer_id: string
           employer_name: string
           employer_signature?: string | null
+          folder_id?: string | null
           hourly_wage: number
           id?: string
           job_description?: string | null
@@ -104,6 +133,7 @@ export type Database = {
           employer_id?: string
           employer_name?: string
           employer_signature?: string | null
+          folder_id?: string | null
           hourly_wage?: number
           id?: string
           job_description?: string | null
@@ -119,7 +149,15 @@ export type Database = {
           worker_name?: string
           worker_signature?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contracts_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "contract_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

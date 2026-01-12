@@ -34,6 +34,16 @@ export interface Contract {
   created_at: string;
   updated_at: string;
   signed_at: string | null;
+  folder_id: string | null;
+}
+
+export interface ContractFolder {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // Generate contract content using AI
@@ -165,4 +175,98 @@ export async function explainTerm(term: string, context?: string): Promise<strin
   }
 
   return response.data.explanation;
+}
+
+// Delete a contract
+export async function deleteContract(contractId: string): Promise<void> {
+  const { error } = await supabase
+    .from('contracts')
+    .delete()
+    .eq('id', contractId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Delete multiple contracts
+export async function deleteContracts(contractIds: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('contracts')
+    .delete()
+    .in('id', contractIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Get all folders for a user
+export async function getFolders(userId: string): Promise<ContractFolder[]> {
+  const { data, error } = await supabase
+    .from('contract_folders')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data || []) as ContractFolder[];
+}
+
+// Create a folder
+export async function createFolder(userId: string, name: string, color: string = 'gray'): Promise<ContractFolder> {
+  const { data, error } = await supabase
+    .from('contract_folders')
+    .insert({ user_id: userId, name, color })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as ContractFolder;
+}
+
+// Delete a folder
+export async function deleteFolder(folderId: string): Promise<void> {
+  const { error } = await supabase
+    .from('contract_folders')
+    .delete()
+    .eq('id', folderId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Move contracts to a folder
+export async function moveContractsToFolder(contractIds: string[], folderId: string | null): Promise<void> {
+  const { error } = await supabase
+    .from('contracts')
+    .update({ folder_id: folderId })
+    .in('id', contractIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Update folder
+export async function updateFolder(folderId: string, updates: { name?: string; color?: string }): Promise<ContractFolder> {
+  const { data, error } = await supabase
+    .from('contract_folders')
+    .update(updates)
+    .eq('id', folderId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as ContractFolder;
 }
