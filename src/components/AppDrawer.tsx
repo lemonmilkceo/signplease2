@@ -77,13 +77,13 @@ const menuItems = userType === 'employer'
           icon: FileText,
           label: '이용약관',
           description: '서비스 이용약관',
-          onClick: () => toast.info('준비 중입니다'),
+          onClick: () => handleNavigate('/terms'),
         },
         {
           icon: Shield,
           label: '개인정보처리방침',
           description: '개인정보 보호 정책',
-          onClick: () => toast.info('준비 중입니다'),
+          onClick: () => handleNavigate('/privacy'),
         },
         {
           icon: HelpCircle,
@@ -116,13 +116,13 @@ const menuItems = userType === 'employer'
           icon: FileText,
           label: '이용약관',
           description: '서비스 이용약관',
-          onClick: () => toast.info('준비 중입니다'),
+          onClick: () => handleNavigate('/terms'),
         },
         {
           icon: Shield,
           label: '개인정보처리방침',
           description: '개인정보 보호 정책',
-          onClick: () => toast.info('준비 중입니다'),
+          onClick: () => handleNavigate('/privacy'),
         },
         {
           icon: HelpCircle,

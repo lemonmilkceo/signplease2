@@ -29,7 +29,8 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -70,6 +71,8 @@ const App = () => (
               <Route path="/bundle-pricing" element={<BundlePricing />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/payment-history" element={<PaymentHistory />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
               
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
