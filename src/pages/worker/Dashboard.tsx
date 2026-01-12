@@ -6,6 +6,7 @@ import {
   Contract, getFolders, ContractFolder, 
   deleteContracts, createFolder, deleteFolder, moveContractsToFolder, updateFolder 
 } from "@/lib/contract-api";
+import { getUserPreferences, saveUserPreferences, SortOption } from "@/lib/preferences-api";
 import { 
   FileText, ChevronRight, Clock, CheckCircle2, Loader2, Building2, Wallet, MessageCircle,
   X, Trash2, FolderPlus, MoreVertical, Folder, Edit2, FolderOpen, ArrowUpDown, 
@@ -70,7 +71,7 @@ const FOLDER_COLORS = [
   { name: 'red', class: 'bg-red-500/10 text-red-500' },
 ];
 
-type SortOption = 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'custom';
+// SortOption is now imported from preferences-api
 
 interface SortableContractCardProps {
   contract: Contract;
@@ -261,16 +262,31 @@ export default function WorkerDashboard() {
 
         setContracts(uniqueContracts);
         
-        // Initialize custom order with completed contracts
-        const completedIds = uniqueContracts
-          .filter(c => c.status === 'completed')
-          .map(c => c.id);
-        setCustomOrder(completedIds);
-        
-        // Fetch folders
+        // Fetch folders and preferences
         if (user) {
-          const foldersData = await getFolders(user.id);
+          const [foldersData, prefsData] = await Promise.all([
+            getFolders(user.id),
+            getUserPreferences(user.id, 'worker')
+          ]);
           setFolders(foldersData);
+          
+          // Load saved preferences
+          if (prefsData) {
+            setSortOption(prefsData.sort_option);
+            setCustomOrder(prefsData.custom_order);
+          } else {
+            // Initialize custom order with completed contracts
+            const completedIds = uniqueContracts
+              .filter(c => c.status === 'completed')
+              .map(c => c.id);
+            setCustomOrder(completedIds);
+          }
+        } else {
+          // Initialize custom order with completed contracts
+          const completedIds = uniqueContracts
+            .filter(c => c.status === 'completed')
+            .map(c => c.id);
+          setCustomOrder(completedIds);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -282,6 +298,23 @@ export default function WorkerDashboard() {
 
     fetchData();
   }, [user]);
+
+  // Save preferences when sort option or custom order changes
+  useEffect(() => {
+    const savePrefs = async () => {
+      if (!user || loading) return;
+      
+      try {
+        await saveUserPreferences(user.id, 'worker', sortOption, customOrder);
+      } catch (error) {
+        console.error("Error saving preferences:", error);
+      }
+    };
+
+    // Debounce saving
+    const timeoutId = setTimeout(savePrefs, 500);
+    return () => clearTimeout(timeoutId);
+  }, [sortOption, customOrder, user, loading]);
 
   // Filter by current folder - only completed contracts can be in folders
   const filteredContracts = currentFolderId 

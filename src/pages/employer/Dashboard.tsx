@@ -18,6 +18,7 @@ import {
   getEmployerContracts, Contract, getFolders, ContractFolder, 
   deleteContracts, createFolder, deleteFolder, moveContractsToFolder, updateFolder 
 } from "@/lib/contract-api";
+import { getUserPreferences, saveUserPreferences, SortOption } from "@/lib/preferences-api";
 import { CreditsBadge } from "@/components/CreditsBadge";
 import { AppDrawer } from "@/components/AppDrawer";
 import { toast } from "sonner";
@@ -74,7 +75,7 @@ const FOLDER_COLORS = [
   { name: 'red', class: 'bg-red-500/10 text-red-500' },
 ];
 
-type SortOption = 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'custom';
+// SortOption is now imported from preferences-api
 
 interface SortableContractCardProps {
   contract: Contract;
@@ -254,15 +255,22 @@ export default function EmployerDashboard() {
       }
 
       try {
-        const [contractsData, foldersData] = await Promise.all([
+        const [contractsData, foldersData, prefsData] = await Promise.all([
           getEmployerContracts(user.id),
-          getFolders(user.id)
+          getFolders(user.id),
+          getUserPreferences(user.id, 'employer')
         ]);
         setContracts(contractsData);
         setFolders(foldersData);
         
-        // Initialize custom order
-        setCustomOrder(contractsData.map(c => c.id));
+        // Load saved preferences
+        if (prefsData) {
+          setSortOption(prefsData.sort_option);
+          setCustomOrder(prefsData.custom_order);
+        } else {
+          // Initialize custom order
+          setCustomOrder(contractsData.map(c => c.id));
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("데이터를 불러오는데 실패했습니다.");
@@ -275,6 +283,23 @@ export default function EmployerDashboard() {
       fetchData();
     }
   }, [user, isDemo, authLoading]);
+
+  // Save preferences when sort option or custom order changes
+  useEffect(() => {
+    const savePrefs = async () => {
+      if (isDemo || !user || isLoading) return;
+      
+      try {
+        await saveUserPreferences(user.id, 'employer', sortOption, customOrder);
+      } catch (error) {
+        console.error("Error saving preferences:", error);
+      }
+    };
+
+    // Debounce saving
+    const timeoutId = setTimeout(savePrefs, 500);
+    return () => clearTimeout(timeoutId);
+  }, [sortOption, customOrder, user, isDemo, isLoading]);
 
   // Use demo contracts in demo mode, real contracts otherwise
   const displayContracts = isDemo 
