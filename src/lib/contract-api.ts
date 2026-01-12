@@ -264,6 +264,34 @@ export async function softDeleteContractsForWorker(contractIds: string[]): Promi
   }
 }
 
+// Restore soft-deleted contracts for workers (clears worker_deleted_at timestamp)
+export async function restoreContractsForWorker(contractIds: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('contracts')
+    .update({ worker_deleted_at: null })
+    .in('id', contractIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+// Get soft-deleted contracts for a worker (trash)
+export async function getWorkerTrashedContracts(workerId: string): Promise<Contract[]> {
+  const { data, error } = await supabase
+    .from('contracts')
+    .select('*')
+    .eq('worker_id', workerId)
+    .not('worker_deleted_at', 'is', null)
+    .order('worker_deleted_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data || []) as Contract[];
+}
+
 // Get all folders for a user
 export async function getFolders(userId: string): Promise<ContractFolder[]> {
   const { data, error } = await supabase
