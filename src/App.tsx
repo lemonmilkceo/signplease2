@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SupportChat } from "@/components/SupportChat";
 import NotFound from "./pages/NotFound";
 
 // Pages
@@ -50,6 +51,9 @@ const App = () => (
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            
+            {/* Floating Support Chat */}
+            <SupportChat />
           </div>
         </BrowserRouter>
       </TooltipProvider>
