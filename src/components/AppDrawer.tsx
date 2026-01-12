@@ -193,8 +193,8 @@ const menuItems = userType === 'employer'
 
         <Separator />
 
-        {/* Logout Button */}
-        <div className="p-6">
+        {/* Logout Button & Version */}
+        <div className="p-6 pb-8 mt-auto">
           <Button
             variant="outline"
             className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -203,11 +203,10 @@ const menuItems = userType === 'employer'
             <LogOut className="w-4 h-4" />
             로그아웃
           </Button>
-        </div>
-
-        {/* App Version */}
-        <div className="absolute bottom-6 left-0 right-0 text-center">
-          <p className="text-xs text-muted-foreground">싸인해주세요 v1.0.0</p>
+          
+          <p className="text-xs text-muted-foreground text-center mt-4">
+            싸인해주세요 v1.0.0
+          </p>
         </div>
       </SheetContent>
     </Sheet>
