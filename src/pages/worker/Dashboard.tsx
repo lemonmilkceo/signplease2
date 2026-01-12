@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,7 +8,8 @@ import {
 } from "@/lib/contract-api";
 import { 
   FileText, ChevronRight, Clock, CheckCircle2, Loader2, Building2, Wallet, MessageCircle,
-  X, Trash2, FolderPlus, MoreVertical, Folder, Edit2, FolderOpen
+  X, Trash2, FolderPlus, MoreVertical, Folder, Edit2, FolderOpen, ArrowUpDown, 
+  Calendar, User, GripVertical
 } from "lucide-react";
 import { CardSlide } from "@/components/ui/card-slide";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,6 +31,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -40,6 +43,23 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const FOLDER_COLORS = [
   { name: 'gray', class: 'bg-muted text-muted-foreground' },
@@ -49,6 +69,125 @@ const FOLDER_COLORS = [
   { name: 'purple', class: 'bg-purple-500/10 text-purple-500' },
   { name: 'red', class: 'bg-red-500/10 text-red-500' },
 ];
+
+type SortOption = 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'custom';
+
+interface SortableContractCardProps {
+  contract: Contract;
+  isSelectionMode: boolean;
+  selectedIds: Set<string>;
+  toggleSelection: (id: string) => void;
+  navigate: (path: string) => void;
+  getStatusBadge: (status: string) => React.ReactNode;
+}
+
+function SortableContractCard({ 
+  contract, 
+  isSelectionMode, 
+  selectedIds, 
+  toggleSelection, 
+  navigate,
+  getStatusBadge 
+}: SortableContractCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: contract.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const isCompleted = contract.status === 'completed';
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <CardSlide
+        onClick={() => {
+          if (isSelectionMode && isCompleted) {
+            toggleSelection(contract.id);
+          } else {
+            navigate(`/worker/contract/${contract.id}`);
+          }
+        }}
+        className="p-4"
+      >
+        <div className="flex items-start gap-4">
+          {/* Drag handle - only in selection mode */}
+          {isSelectionMode && isCompleted && (
+            <div 
+              {...attributes} 
+              {...listeners}
+              className="flex-shrink-0 pt-1 cursor-grab active:cursor-grabbing touch-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="w-5 h-5 text-muted-foreground" />
+            </div>
+          )}
+          
+          {/* Selection checkbox - only for completed contracts */}
+          {isSelectionMode && isCompleted && (
+            <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0 pt-1">
+              <Checkbox
+                checked={selectedIds.has(contract.id)}
+                onCheckedChange={() => toggleSelection(contract.id)}
+              />
+            </div>
+          )}
+          
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            contract.status === 'pending' ? 'bg-warning/10' : 'bg-success/10'
+          }`}>
+            <FileText className={`w-6 h-6 ${contract.status === 'pending' ? 'text-warning' : 'text-success'}`} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <p className="text-body font-semibold text-foreground truncate">
+                {contract.employer_name}
+              </p>
+              {!isSelectionMode && getStatusBadge(contract.status)}
+            </div>
+            <div className="space-y-1">
+              {contract.business_name && (
+                <div className="flex items-center gap-1.5 text-caption text-muted-foreground">
+                  <Building2 className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="truncate">{contract.business_name}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-3 text-caption text-muted-foreground">
+                {contract.status === 'pending' ? (
+                  <>
+                    <div className="flex items-center gap-1">
+                      <Wallet className="w-3.5 h-3.5" />
+                      <span>시급 {contract.hourly_wage.toLocaleString()}원</span>
+                    </div>
+                    <span>·</span>
+                    <span>{contract.work_days.length > 3 ? `주 ${contract.work_days.length}일` : contract.work_days.join(', ')}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{contract.start_date} 시작</span>
+                    <span>·</span>
+                    <span>{contract.work_start_time} ~ {contract.work_end_time}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          {!isSelectionMode && (
+            <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
+          )}
+        </div>
+      </CardSlide>
+    </div>
+  );
+}
 
 export default function WorkerDashboard() {
   const navigate = useNavigate();
@@ -64,6 +203,10 @@ export default function WorkerDashboard() {
   // Folder view
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   
+  // Sorting
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
+  const [customOrder, setCustomOrder] = useState<string[]>([]);
+  
   // Dialogs
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showFolderDialog, setShowFolderDialog] = useState(false);
@@ -71,6 +214,18 @@ export default function WorkerDashboard() {
   const [editingFolder, setEditingFolder] = useState<ContractFolder | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderColor, setNewFolderColor] = useState('gray');
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     async function fetchData() {
@@ -106,6 +261,12 @@ export default function WorkerDashboard() {
 
         setContracts(uniqueContracts);
         
+        // Initialize custom order with completed contracts
+        const completedIds = uniqueContracts
+          .filter(c => c.status === 'completed')
+          .map(c => c.id);
+        setCustomOrder(completedIds);
+        
         // Fetch folders
         if (user) {
           const foldersData = await getFolders(user.id);
@@ -128,9 +289,44 @@ export default function WorkerDashboard() {
     : contracts.filter(c => !c.folder_id || c.status === 'pending');
 
   const pendingContracts = filteredContracts.filter((c) => c.status === 'pending');
-  const completedContracts = currentFolderId 
+  
+  // Apply sorting to completed contracts
+  const completedContractsRaw = currentFolderId 
     ? filteredContracts.filter(c => c.status === 'completed')
     : contracts.filter((c) => c.status === 'completed' && !c.folder_id);
+
+  const completedContracts = useMemo(() => {
+    const sorted = [...completedContractsRaw];
+    
+    switch (sortOption) {
+      case 'newest':
+        return sorted.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+      case 'oldest':
+        return sorted.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      case 'name-asc':
+        return sorted.sort((a, b) => 
+          a.employer_name.localeCompare(b.employer_name, 'ko')
+        );
+      case 'name-desc':
+        return sorted.sort((a, b) => 
+          b.employer_name.localeCompare(a.employer_name, 'ko')
+        );
+      case 'custom':
+        return sorted.sort((a, b) => {
+          const indexA = customOrder.indexOf(a.id);
+          const indexB = customOrder.indexOf(b.id);
+          if (indexA === -1) return 1;
+          if (indexB === -1) return -1;
+          return indexA - indexB;
+        });
+      default:
+        return sorted;
+    }
+  }, [completedContractsRaw, sortOption, customOrder]);
 
   const currentFolder = folders.find(f => f.id === currentFolderId);
 
@@ -163,6 +359,7 @@ export default function WorkerDashboard() {
     try {
       await deleteContracts(Array.from(selectedIds));
       setContracts(prev => prev.filter(c => !selectedIds.has(c.id)));
+      setCustomOrder(prev => prev.filter(id => !selectedIds.has(id)));
       toast.success(`${selectedIds.size}개의 계약서가 삭제되었습니다.`);
       exitSelectionMode();
     } catch (error) {
@@ -228,6 +425,29 @@ export default function WorkerDashboard() {
     }
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      setSortOption('custom');
+      setCustomOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        
+        // If items don't exist in customOrder, add them
+        if (oldIndex === -1 || newIndex === -1) {
+          const newItems = completedContracts.map(c => c.id);
+          const oldIdx = newItems.indexOf(active.id as string);
+          const newIdx = newItems.indexOf(over.id as string);
+          return arrayMove(newItems, oldIdx, newIdx);
+        }
+        
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      toast.success("순서가 변경되었습니다.");
+    }
+  };
+
   const openEditFolder = (folder: ContractFolder) => {
     setEditingFolder(folder);
     setNewFolderName(folder.name);
@@ -257,6 +477,16 @@ export default function WorkerDashboard() {
         );
       default:
         return null;
+    }
+  };
+
+  const getSortLabel = (option: SortOption) => {
+    switch (option) {
+      case 'newest': return '최신순';
+      case 'oldest': return '오래된순';
+      case 'name-asc': return '이름 (ㄱ-ㅎ)';
+      case 'name-desc': return '이름 (ㅎ-ㄱ)';
+      case 'custom': return '직접 정렬';
     }
   };
 
@@ -420,13 +650,58 @@ export default function WorkerDashboard() {
             </div>
             
             {/* Selection Actions */}
-            <div className="px-6 py-3 flex items-center gap-2 border-t border-border">
+            <div className="px-6 py-3 flex items-center gap-2 border-t border-border overflow-x-auto">
+              {/* Sort dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 flex-shrink-0"
+                  >
+                    <ArrowUpDown className="w-4 h-4" />
+                    {getSortLabel(sortOption)}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuLabel>정렬 기준</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSortOption('newest')}>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    최신순
+                    {sortOption === 'newest' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption('oldest')}>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    오래된순
+                    {sortOption === 'oldest' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSortOption('name-asc')}>
+                    <User className="w-4 h-4 mr-2" />
+                    이름 (ㄱ-ㅎ)
+                    {sortOption === 'name-asc' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortOption('name-desc')}>
+                    <User className="w-4 h-4 mr-2" />
+                    이름 (ㅎ-ㄱ)
+                    {sortOption === 'name-desc' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSortOption('custom')}>
+                    <GripVertical className="w-4 h-4 mr-2" />
+                    직접 정렬 (드래그)
+                    {sortOption === 'custom' && <CheckCircle2 className="w-4 h-4 ml-auto text-primary" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowMoveDialog(true)}
                 disabled={selectedIds.size === 0}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 flex-shrink-0"
               >
                 <Folder className="w-4 h-4" />
                 폴더 이동
@@ -436,7 +711,7 @@ export default function WorkerDashboard() {
                 size="sm"
                 onClick={() => setShowDeleteDialog(true)}
                 disabled={selectedIds.size === 0}
-                className="flex items-center gap-2 text-destructive hover:text-destructive"
+                className="flex items-center gap-2 text-destructive hover:text-destructive flex-shrink-0"
               >
                 <Trash2 className="w-4 h-4" />
                 삭제
@@ -557,14 +832,49 @@ export default function WorkerDashboard() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <h2 className="text-heading font-semibold text-foreground mb-4">
-              {currentFolderId ? '계약서' : '완료된 계약'}
-            </h2>
-            <div className="space-y-3">
-              {completedContracts.map((contract, index) => 
-                renderContractCard(contract, index, 'completed')
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-heading font-semibold text-foreground">
+                {currentFolderId ? '계약서' : '완료된 계약'}
+              </h2>
+              {!isSelectionMode && (
+                <span className="text-caption text-muted-foreground">
+                  {getSortLabel(sortOption)}
+                </span>
               )}
             </div>
+            
+            {isSelectionMode && sortOption === 'custom' ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={completedContracts.map(c => c.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-3">
+                    {completedContracts.map((contract) => (
+                      <SortableContractCard
+                        key={contract.id}
+                        contract={contract}
+                        isSelectionMode={isSelectionMode}
+                        selectedIds={selectedIds}
+                        toggleSelection={toggleSelection}
+                        navigate={navigate}
+                        getStatusBadge={getStatusBadge}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <div className="space-y-3">
+                {completedContracts.map((contract, index) => 
+                  renderContractCard(contract, index, 'completed')
+                )}
+              </div>
+            )}
           </motion.div>
         </div>
       )}
