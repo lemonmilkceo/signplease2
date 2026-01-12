@@ -70,14 +70,26 @@ export default function CreateContract() {
               workerName: demoContract.workerName,
               hourlyWage: demoContract.hourlyWage,
               startDate: demoContract.startDate,
+              endDate: demoContract.endDate,
+              noEndDate: demoContract.noEndDate,
               workDays: demoContract.workDays,
+              workDaysPerWeek: demoContract.workDaysPerWeek,
               workStartTime: demoContract.workStartTime,
               workEndTime: demoContract.workEndTime,
+              breakTimeMinutes: demoContract.breakTimeMinutes,
               workLocation: demoContract.workLocation,
               businessName: demoContract.businessName,
+              businessSize: demoContract.businessSize,
+              businessType: demoContract.businessType,
               jobDescription: demoContract.jobDescription,
               wageType: demoContract.wageType || 'hourly',
               monthlyWage: demoContract.monthlyWage,
+              includeWeeklyHolidayPay: demoContract.includeWeeklyHolidayPay,
+              isComprehensiveWage: demoContract.isComprehensiveWage,
+              comprehensiveWageDetails: demoContract.comprehensiveWageDetails,
+              paymentDay: demoContract.paymentDay,
+              paymentMonth: demoContract.paymentMonth,
+              paymentEndOfMonth: demoContract.paymentEndOfMonth,
             });
           }
         } else {
@@ -90,12 +102,22 @@ export default function CreateContract() {
               hourlyWage: contract.hourly_wage,
               startDate: contract.start_date,
               workDays: contract.work_days,
+              workDaysPerWeek: contract.work_days_per_week || contract.work_days?.length,
               workStartTime: contract.work_start_time,
               workEndTime: contract.work_end_time,
+              breakTimeMinutes: contract.break_time_minutes ?? 0,
               workLocation: contract.work_location,
               businessName: contract.business_name || undefined,
+              businessSize: (contract.business_size as BusinessSize) || 'under5',
               jobDescription: contract.job_description || undefined,
               wageType: 'hourly',
+              // 포괄임금 관련 필드
+              isComprehensiveWage: true, // DB에 저장된 계약서는 포괄임금계약서
+              comprehensiveWageDetails: {
+                overtimePerHour: contract.overtime_per_hour ?? undefined,
+                holidayPerDay: contract.holiday_per_day ?? undefined,
+                annualLeavePerDay: contract.annual_leave_per_day ?? undefined,
+              },
             });
           }
         }
