@@ -21,6 +21,7 @@ import EmployerChat from "./pages/employer/Chat";
 import WorkerChat from "./pages/worker/Chat";
 import Pricing from "./pages/Pricing";
 import LegalReviewPricing from "./pages/LegalReviewPricing";
+import BundlePricing from "./pages/BundlePricing";
 import Profile from "./pages/Profile";
 import PaymentHistory from "./pages/PaymentHistory";
 import Signup from "./pages/Signup";
@@ -59,6 +60,7 @@ const App = () => (
               {/* Common Routes */}
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/legal-review-pricing" element={<LegalReviewPricing />} />
+              <Route path="/bundle-pricing" element={<BundlePricing />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/payment-history" element={<PaymentHistory />} />
               

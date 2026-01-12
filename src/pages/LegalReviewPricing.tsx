@@ -13,7 +13,8 @@ import {
   Crown,
   MessageCircle,
   ShieldCheck,
-  FileSearch
+  FileSearch,
+  Package
 } from "lucide-react";
 import { LEGAL_REVIEW_PRICING_PLANS, getRemainingLegalReviews } from "@/lib/legal-review-credits-api";
 import { toast } from "sonner";
@@ -268,13 +269,24 @@ export default function LegalReviewPricing() {
               <p className="text-sm text-muted-foreground mb-3">
                 AI 근로계약서 자동 생성 서비스도 이용해 보세요
               </p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/pricing')}
-              >
-                계약서 요금제 보기
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/pricing')}
+                >
+                  계약서 요금제
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => navigate('/bundle-pricing')}
+                  className="bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90"
+                >
+                  <Package className="w-3.5 h-3.5 mr-1" />
+                  묶음 할인
+                </Button>
+              </div>
             </div>
           </div>
         </motion.div>

@@ -260,14 +260,25 @@ export default function Pricing() {
               <p className="text-sm text-muted-foreground mb-3">
                 작성한 계약서의 법적 문제점을 AI가 분석해 드립니다
               </p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/legal-review-pricing')}
-                className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
-              >
-                노무사 요금제 보기
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/legal-review-pricing')}
+                  className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                >
+                  노무사 요금제
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => navigate('/bundle-pricing')}
+                  className="bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90"
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1" />
+                  묶음 할인
+                </Button>
+              </div>
             </div>
           </div>
         </motion.div>
