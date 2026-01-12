@@ -244,7 +244,7 @@ export default function Onboarding() {
           className="gap-3 h-14 text-base font-semibold shadow-lg"
         >
           <User className="w-5 h-5" />
-          시작하기
+          회원가입
         </Button>
 
         <Button
