@@ -101,6 +101,9 @@ export default function CreateContract() {
               workerName: contract.worker_name,
               hourlyWage: contract.hourly_wage,
               startDate: contract.start_date,
+              // endDate와 noEndDate 복원 (DB에 저장 시 로직 필요)
+              endDate: undefined, // DB에 end_date 컬럼 추가 후 연동 필요
+              noEndDate: true, // 기본값: 정함이 없음
               workDays: contract.work_days,
               workDaysPerWeek: contract.work_days_per_week || contract.work_days?.length,
               workStartTime: contract.work_start_time,
@@ -118,6 +121,10 @@ export default function CreateContract() {
                 holidayPerDay: contract.holiday_per_day ?? undefined,
                 annualLeavePerDay: contract.annual_leave_per_day ?? undefined,
               },
+              // 급여일 관련 필드 복원
+              paymentDay: 10, // 기본값 (DB에 컬럼 추가 후 연동 필요)
+              paymentMonth: 'next', // 기본값
+              paymentEndOfMonth: false,
             });
           }
         }

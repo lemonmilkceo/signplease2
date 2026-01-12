@@ -20,38 +20,39 @@ export interface PricingPlan {
   savings?: number;
 }
 
+// 계약서 작성 요금제 - 합리적인 가격 설정
 export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'single',
     name: '1건',
     credits: 1,
-    price: 2000,
-    pricePerCredit: 2000,
+    price: 1500,
+    pricePerCredit: 1500,
   },
   {
     id: 'starter',
     name: '5건 패키지',
     credits: 5,
-    price: 9000,
-    pricePerCredit: 1800,
-    savings: 10,
+    price: 6000,
+    pricePerCredit: 1200,
+    savings: 20,
   },
   {
     id: 'business',
-    name: '20건 패키지',
-    credits: 20,
-    price: 30000,
-    pricePerCredit: 1500,
+    name: '15건 패키지',
+    credits: 15,
+    price: 15000,
+    pricePerCredit: 1000,
     popular: true,
-    savings: 25,
+    savings: 33,
   },
   {
     id: 'enterprise',
-    name: '50건 패키지',
-    credits: 50,
-    price: 60000,
-    pricePerCredit: 1200,
-    savings: 40,
+    name: '30건 패키지',
+    credits: 30,
+    price: 24000,
+    pricePerCredit: 800,
+    savings: 47,
   },
 ];
 
