@@ -41,6 +41,7 @@ import { parseWorkTime, calculateMonthlyWageBreakdown, calculateWeeklyHolidayPay
 import { generateContractPDF, ContractPDFData } from "@/lib/pdf-utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ShareContractModal } from "@/components/ShareContractModal";
+import { isContractEditable, getRemainingEditDays, CONTRACT_EDIT_PERIOD_DAYS } from "@/lib/contract-utils";
 
 export default function ContractPreview() {
   const navigate = useNavigate();
@@ -911,17 +912,27 @@ export default function ContractPreview() {
               {/* Modal Footer */}
               <div className="p-6 border-t border-border space-y-3">
                 {legalAdvice && legalAdvice.grade !== '완벽' && (
-                  <Button
-                    size="full"
-                    onClick={() => {
-                      setIsLegalAdviceOpen(false);
-                      navigate('/employer/create');
-                    }}
-                    className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-semibold gap-2"
-                  >
-                    <Edit className="w-4 h-4" />
-                    계약서 수정하기
-                  </Button>
+                  <>
+                    {contract && isContractEditable(contract.created_at) ? (
+                      <Button
+                        size="full"
+                        onClick={() => {
+                          setIsLegalAdviceOpen(false);
+                          navigate('/employer/create');
+                        }}
+                        className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-semibold gap-2"
+                      >
+                        <Edit className="w-4 h-4" />
+                        계약서 수정하기
+                      </Button>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-muted border border-border text-center">
+                        <p className="text-caption text-muted-foreground">
+                          수정 가능 기간({CONTRACT_EDIT_PERIOD_DAYS}일)이 지나 수정할 수 없습니다
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
                 <Button
                   variant="outline"

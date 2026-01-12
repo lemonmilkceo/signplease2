@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { isContractEditable, CONTRACT_EDIT_PERIOD_DAYS } from '@/lib/contract-utils';
 
 export interface ContractInput {
   workerName: string;
@@ -122,11 +123,25 @@ export async function getContract(contractId: string): Promise<Contract | null> 
   return data as Contract | null;
 }
 
-// Update contract (for signing)
+// Update contract (for signing or editing)
+// Note: Editing is only allowed within CONTRACT_EDIT_PERIOD_DAYS of creation
 export async function updateContract(
   contractId: string,
-  updates: Partial<Contract>
+  updates: Partial<Contract>,
+  skipEditCheck: boolean = false // For signing operations which should always be allowed
 ): Promise<Contract> {
+  // If not skipping check and trying to edit content fields, verify edit period
+  if (!skipEditCheck) {
+    const currentContract = await getContract(contractId);
+    if (currentContract && !isContractEditable(currentContract.created_at)) {
+      // Only block non-signature updates
+      const isSignatureUpdate = 'employer_signature' in updates || 'worker_signature' in updates || 'status' in updates || 'signed_at' in updates;
+      if (!isSignatureUpdate) {
+        throw new Error(`수정 가능 기간(${CONTRACT_EDIT_PERIOD_DAYS}일)이 지나 수정할 수 없습니다`);
+      }
+    }
+  }
+
   const { data, error } = await supabase
     .from('contracts')
     .update(updates)

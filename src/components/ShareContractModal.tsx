@@ -9,9 +9,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MessageCircle, Copy, Check, Loader2, Share2 } from "lucide-react";
+import { MessageCircle, Copy, Check, Loader2, Share2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CONTRACT_EDIT_PERIOD_DAYS } from "@/lib/contract-utils";
 
 interface ShareContractModalProps {
   open: boolean;
@@ -190,6 +191,15 @@ export function ShareContractModal({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-3 pt-2">
+          {/* 수정 가능 기간 안내 */}
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              계약서 공유 후 <strong>{CONTRACT_EDIT_PERIOD_DAYS}일 이내</strong>에만 수정이 가능합니다.
+              이후에는 계약 내용을 변경할 수 없으니 신중하게 확인해주세요.
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="phone">근로자 연락처</Label>
             <Input
