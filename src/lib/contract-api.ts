@@ -188,9 +188,11 @@ export async function signContractAsEmployer(
 // Sign contract as worker
 export async function signContractAsWorker(
   contractId: string,
-  signature: string
+  signature: string,
+  workerId: string
 ): Promise<Contract> {
   return updateContract(contractId, {
+    worker_id: workerId,
     worker_signature: signature,
     status: 'completed',
     signed_at: new Date().toISOString(),

@@ -135,11 +135,11 @@ export default function WorkerContractView() {
   };
 
   const handleSign = async (signatureData: string) => {
-    if (!contract?.id) return;
+    if (!contract?.id || !user?.id) return;
     
     setSigning(true);
     try {
-      await signContractAsWorker(contract.id, signatureData);
+      await signContractAsWorker(contract.id, signatureData, user.id);
       setIsSignatureOpen(false);
       toast.success("계약이 완료되었습니다! 🎉", {
         description: "잠시 후 대시보드로 이동합니다.",
