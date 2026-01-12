@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, ChevronRight, ChevronLeft, Send, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const FAQ_ITEMS = [
 ];
 
 export function SupportChat() {
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<'home' | 'faq' | 'chat' | 'faq-detail'>('home');
   const [selectedFaq, setSelectedFaq] = useState<typeof FAQ_ITEMS[0] | null>(null);
@@ -47,9 +49,15 @@ export function SupportChat() {
     {
       id: '1',
       role: 'assistant',
-      content: '안녕하세요! 알바계약 고객센터입니다. 무엇을 도와드릴까요?'
+      content: '안녕하세요! 싸인해주세요 고객센터입니다. 무엇을 도와드릴까요?'
     }
   ]);
+
+  // 온보딩/역할선택 화면에서는 숨김
+  const hiddenPaths = ['/', '/select-role'];
+  if (hiddenPaths.includes(location.pathname)) {
+    return null;
+  }
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 

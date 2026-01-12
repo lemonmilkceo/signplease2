@@ -5,10 +5,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `당신은 "알바계약" 서비스의 친절한 고객 지원 상담원입니다.
+const SYSTEM_PROMPT = `당신은 "싸인해주세요" 서비스의 친절한 고객 지원 상담원입니다.
 
 서비스 소개:
-- 알바계약은 아르바이트 표준근로계약서를 쉽게 작성할 수 있는 서비스입니다
+- 싸인해주세요는 아르바이트 표준근로계약서를 쉽게 작성할 수 있는 서비스입니다
 - 사업주가 계약서를 작성하고 근로자에게 카카오톡으로 전송하면, 근로자가 전자서명할 수 있습니다
 - 첫 가입 시 5건의 무료 크레딧이 제공됩니다
 - 추가 크레딧은 건당 2,000원이며, 묶음 구매 시 할인됩니다
