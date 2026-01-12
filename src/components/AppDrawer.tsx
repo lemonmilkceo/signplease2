@@ -23,6 +23,7 @@ import {
   HelpCircle,
   Shield,
   FileText,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,8 +51,14 @@ export function AppDrawer({ userType }: AppDrawerProps) {
     navigate(path);
   };
 
-  const menuItems = userType === 'employer' 
+const menuItems = userType === 'employer' 
     ? [
+        {
+          icon: MessageCircle,
+          label: '메시지',
+          description: '근로자와 대화하기',
+          onClick: () => handleNavigate('/employer/chat'),
+        },
         {
           icon: User,
           label: '회원정보',
@@ -90,6 +97,12 @@ export function AppDrawer({ userType }: AppDrawerProps) {
         },
       ]
     : [
+        {
+          icon: MessageCircle,
+          label: '메시지',
+          description: '사업주와 대화하기',
+          onClick: () => handleNavigate('/worker/chat'),
+        },
         {
           icon: User,
           label: '회원정보',

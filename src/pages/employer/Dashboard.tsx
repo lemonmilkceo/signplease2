@@ -7,7 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAppStore } from "@/lib/store";
 import { 
   Plus, FileText, Clock, CheckCircle2, ChevronRight, Building2, 
-  Trash2, FolderPlus, X, MoreVertical, Folder, Edit2, FolderOpen
+  Trash2, FolderPlus, X, MoreVertical, Folder, Edit2, FolderOpen,
+  MessageCircle
 } from "lucide-react";
 import { CardSlide } from "@/components/ui/card-slide";
 import { LoadingSpinner } from "@/components/ui/loading";
@@ -531,7 +532,7 @@ export default function EmployerDashboard() {
           transition={{ delay: 0.1 }}
           className="flex gap-3"
         >
-          <Button
+<Button
             variant="toss"
             size="full"
             onClick={() => navigate('/employer/create')}
@@ -541,19 +542,29 @@ export default function EmployerDashboard() {
             새 계약서 작성
           </Button>
           {!isDemo && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => {
-                setEditingFolder(null);
-                setNewFolderName('');
-                setNewFolderColor('gray');
-                setShowFolderDialog(true);
-              }}
-              className="flex-shrink-0"
-            >
-              <FolderPlus className="w-5 h-5" />
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigate('/employer/chat')}
+                className="flex-shrink-0"
+              >
+                <MessageCircle className="w-5 h-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setEditingFolder(null);
+                  setNewFolderName('');
+                  setNewFolderColor('gray');
+                  setShowFolderDialog(true);
+                }}
+                className="flex-shrink-0"
+              >
+                <FolderPlus className="w-5 h-5" />
+              </Button>
+            </>
           )}
         </motion.div>
       </div>
