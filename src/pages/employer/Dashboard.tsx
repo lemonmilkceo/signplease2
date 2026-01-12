@@ -8,6 +8,7 @@ import { Plus, FileText, Clock, CheckCircle2, ChevronRight, LogOut, MapPin, Buil
 import { CardSlide } from "@/components/ui/card-slide";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { getEmployerContracts, Contract } from "@/lib/contract-api";
+import { CreditsBadge } from "@/components/CreditsBadge";
 import { toast } from "sonner";
 
 export default function EmployerDashboard() {
@@ -124,25 +125,36 @@ export default function EmployerDashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="px-6 pt-12 pb-6 flex items-start justify-between">
+      <div className="px-6 pt-12 pb-4">
+        <div className="flex items-start justify-between mb-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <p className="text-body text-muted-foreground mb-1">안녕하세요,</p>
+            <h1 className="text-title text-foreground">
+              {displayName || '사장님'} 👋
+            </h1>
+          </motion.div>
+
+          {!isDemo && user && (
+            <button
+              onClick={handleSignOut}
+              className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        
+        {/* Credits Badge */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
         >
-          <p className="text-body text-muted-foreground mb-1">안녕하세요,</p>
-          <h1 className="text-title text-foreground">
-            {displayName || '사장님'} 👋
-          </h1>
+          <CreditsBadge />
         </motion.div>
-
-        {!isDemo && user && (
-          <button
-            onClick={handleSignOut}
-            className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        )}
       </div>
 
       {/* Quick Action */}
