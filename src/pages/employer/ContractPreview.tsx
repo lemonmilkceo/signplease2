@@ -907,31 +907,50 @@ export default function ContractPreview() {
       {/* Bottom Buttons */}
       <div className="px-6 py-8 space-y-3">
         {!isSigned ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Button
-              size="full"
-              onClick={() => setIsSignatureOpen(true)}
-              className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-semibold shadow-lg shadow-purple-500/30 transition-all duration-300 relative overflow-hidden group"
+          <>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
             >
-              <motion.span
-                className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
-                animate={{
-                  x: ['-100%', '100%'],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-              />
-              <Sparkles className="w-5 h-5 mr-2" />
-              서명하고 계약서 완성하기
-            </Button>
-          </motion.div>
+              <Button
+                size="full"
+                onClick={() => setIsSignatureOpen(true)}
+                className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-semibold shadow-lg shadow-purple-500/30 transition-all duration-300 relative overflow-hidden group"
+              >
+                <motion.span
+                  className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
+                  animate={{
+                    x: ['-100%', '100%'],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'linear',
+                  }}
+                />
+                <Sparkles className="w-5 h-5 mr-2" />
+                서명하고 계약서 완성하기
+              </Button>
+            </motion.div>
+            
+            {/* 계약서 수정 버튼 */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+            >
+              <Button
+                variant="outline"
+                size="full"
+                onClick={() => navigate(`/employer/create?edit=${id}`)}
+                className="gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                근로계약서 내용 수정하기
+              </Button>
+            </motion.div>
+          </>
         ) : (
           <>
             <motion.div
