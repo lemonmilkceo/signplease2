@@ -688,7 +688,7 @@ export default function CreateContract() {
                 <div>
                   <p className="text-caption text-muted-foreground mb-2">근무 시작일</p>
                   <div className="relative">
-                    <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
                     <Input
                       variant="toss"
                       inputSize="lg"
@@ -697,7 +697,6 @@ export default function CreateContract() {
                       onChange={(e) => setContractForm({ startDate: e.target.value })}
                       className="pl-14"
                       max="9999-12-31"
-                      autoFocus
                     />
                   </div>
                 </div>
