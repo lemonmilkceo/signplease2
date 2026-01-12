@@ -23,6 +23,7 @@ import Pricing from "./pages/Pricing";
 import Profile from "./pages/Profile";
 import PaymentHistory from "./pages/PaymentHistory";
 import Signup from "./pages/Signup";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/" element={<Splash />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/login" element={<Login />} />
               <Route path="/select-role" element={<SelectRole />} />
               
 {/* Employer Routes */}

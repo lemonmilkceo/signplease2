@@ -248,10 +248,19 @@ export default function Onboarding() {
         </Button>
 
         <Button
+          variant="outline"
+          size="full"
+          onClick={() => navigate("/login")}
+          className="h-12 text-base font-medium"
+        >
+          이미 계정이 있어요
+        </Button>
+
+        <Button
           variant="ghost"
           size="full"
           onClick={handleDemo}
-          className="text-muted-foreground h-12"
+          className="text-muted-foreground h-10"
         >
           먼저 둘러볼게요
         </Button>
