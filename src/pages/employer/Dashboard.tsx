@@ -1207,9 +1207,11 @@ export default function EmployerDashboard() {
                     <div>
                       <p className="text-xs text-muted-foreground">근무일</p>
                       <p className="text-sm font-semibold">
-                        {previewContract.work_days.length > 0 
-                          ? `주 ${previewContract.work_days.length}일 (${previewContract.work_days.join(', ')})`
-                          : '미정'}
+                        {previewContract.work_days_per_week 
+                          ? `주 ${previewContract.work_days_per_week}일`
+                          : previewContract.work_days && previewContract.work_days.length > 0 
+                            ? `주 ${previewContract.work_days.length}일 (${previewContract.work_days.join(', ')})`
+                            : '협의 필요'}
                       </p>
                     </div>
                   </div>
