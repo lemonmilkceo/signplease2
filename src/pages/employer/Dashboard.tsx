@@ -8,8 +8,9 @@ import { useAppStore } from "@/lib/store";
 import { 
   Plus, FileText, Clock, CheckCircle2, ChevronRight, Building2, 
   Trash2, FolderPlus, X, MoreVertical, Folder, Edit2, FolderOpen,
-  MessageCircle
+  MessageCircle, Edit
 } from "lucide-react";
+import { isContractEditable, getRemainingEditDays } from "@/lib/contract-utils";
 import { CardSlide } from "@/components/ui/card-slide";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { 
@@ -339,6 +340,8 @@ export default function EmployerDashboard() {
   const renderContractCard = (contract: Contract, index: number, section: 'pending' | 'completed') => {
     const isPending = section === 'pending';
     const delay = (isPending ? 0.3 : 0.5) + index * 0.05;
+    const canEdit = isDemo || isContractEditable(contract.created_at);
+    const remainingDays = getRemainingEditDays(contract.created_at);
     
     return (
       <motion.div
@@ -376,7 +379,23 @@ export default function EmployerDashboard() {
                 <p className="text-body font-semibold text-foreground truncate">
                   {contract.worker_name}
                 </p>
-                {getStatusBadge(contract.status)}
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(contract.status)}
+                  {/* Edit button for pending/draft contracts */}
+                  {isPending && canEdit && !isSelectionMode && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // TODO: Navigate to edit with contract data
+                        navigate(`/employer/create?edit=${contract.id}`);
+                      }}
+                      className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
+                      title={`수정 가능 (${remainingDays}일 남음)`}
+                    >
+                      <Edit className="w-4 h-4 text-primary" />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="space-y-1">
                 {contract.business_name && (
@@ -391,6 +410,12 @@ export default function EmployerDashboard() {
                       <span>시급 {contract.hourly_wage.toLocaleString()}원</span>
                       <span>·</span>
                       <span>{contract.work_days.length > 3 ? `주 ${contract.work_days.length}일` : contract.work_days.join(', ')}</span>
+                      {canEdit && remainingDays <= 3 && (
+                        <>
+                          <span>·</span>
+                          <span className="text-warning font-medium">수정 {remainingDays}일 남음</span>
+                        </>
+                      )}
                     </>
                   ) : (
                     <>
