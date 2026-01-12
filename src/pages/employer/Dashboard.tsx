@@ -923,7 +923,7 @@ export default function EmployerDashboard() {
       </div>
 
       {/* Folders */}
-      {!currentFolderId && activeFolders.length > 0 && (
+      {!currentFolderId && (activeFolders.length > 0 || trashedContracts.length > 0) && (
         <div className="px-6 mb-6">
           <motion.div
             initial={{ opacity: 0 }}
