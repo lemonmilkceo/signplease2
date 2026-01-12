@@ -89,7 +89,7 @@ const menuItems = userType === 'employer'
           icon: HelpCircle,
           label: '고객센터',
           description: '문의 및 도움말',
-          onClick: () => toast.info('준비 중입니다'),
+          onClick: () => handleNavigate('/support'),
         },
         {
           icon: LogOut,
@@ -128,7 +128,7 @@ const menuItems = userType === 'employer'
           icon: HelpCircle,
           label: '고객센터',
           description: '문의 및 도움말',
-          onClick: () => toast.info('준비 중입니다'),
+          onClick: () => handleNavigate('/support'),
         },
         {
           icon: LogOut,
