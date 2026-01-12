@@ -403,3 +403,15 @@ export async function updateFolder(folderId: string, updates: { name?: string; c
 
   return data as ContractFolder;
 }
+
+// Permanently delete contracts for employer
+export async function permanentDeleteContractsForEmployer(contractIds: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('contracts')
+    .delete()
+    .in('id', contractIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
