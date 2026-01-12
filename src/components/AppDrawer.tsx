@@ -37,13 +37,9 @@ export function AppDrawer({ userType }: AppDrawerProps) {
   const [open, setOpen] = useState(false);
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      setOpen(false);
-      navigate('/');
-    } catch (error) {
-      toast.error("로그아웃에 실패했습니다.");
-    }
+    await signOut();
+    setOpen(false);
+    navigate('/login');
   };
 
   const handleNavigate = (path: string) => {
