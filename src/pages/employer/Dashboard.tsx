@@ -4,16 +4,17 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppStore } from "@/lib/store";
-import { Plus, FileText, Clock, CheckCircle2, ChevronRight, LogOut, MapPin, Building2 } from "lucide-react";
+import { Plus, FileText, Clock, CheckCircle2, ChevronRight, Building2 } from "lucide-react";
 import { CardSlide } from "@/components/ui/card-slide";
 import { LoadingSpinner } from "@/components/ui/loading";
 import { getEmployerContracts, Contract } from "@/lib/contract-api";
 import { CreditsBadge } from "@/components/CreditsBadge";
+import { AppDrawer } from "@/components/AppDrawer";
 import { toast } from "sonner";
 
 export default function EmployerDashboard() {
   const navigate = useNavigate();
-  const { user, profile, signOut, isLoading: authLoading } = useAuth();
+  const { user, profile, isLoading: authLoading } = useAuth();
   const { isDemo, contracts: demoContracts, user: demoUser, contractForm } = useAppStore();
   
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -47,14 +48,6 @@ export default function EmployerDashboard() {
     }
   }, [user, isDemo, authLoading]);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/');
-    } catch (error) {
-      toast.error("로그아웃에 실패했습니다.");
-    }
-  };
 
   // Use demo contracts in demo mode, real contracts otherwise
   const displayContracts = isDemo 
@@ -138,12 +131,7 @@ export default function EmployerDashboard() {
           </motion.div>
 
           {!isDemo && user && (
-            <button
-              onClick={handleSignOut}
-              className="p-2 rounded-full hover:bg-muted transition-colors text-muted-foreground"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+            <AppDrawer userType="employer" />
           )}
         </div>
         

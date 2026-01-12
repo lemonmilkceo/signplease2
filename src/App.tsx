@@ -15,6 +15,8 @@ import ContractPreview from "./pages/employer/ContractPreview";
 import WorkerDashboard from "./pages/worker/Dashboard";
 import WorkerContractView from "./pages/worker/ContractView";
 import Pricing from "./pages/Pricing";
+import Profile from "./pages/Profile";
+import PaymentHistory from "./pages/PaymentHistory";
 
 const queryClient = new QueryClient();
 
@@ -40,8 +42,10 @@ const App = () => (
               <Route path="/worker" element={<WorkerDashboard />} />
               <Route path="/worker/contract/:id" element={<WorkerContractView />} />
               
-              {/* Pricing */}
+              {/* Common Routes */}
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/payment-history" element={<PaymentHistory />} />
               
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />

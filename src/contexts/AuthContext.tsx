@@ -7,7 +7,10 @@ interface Profile {
   user_id: string;
   name: string | null;
   email: string | null;
+  phone: string | null;
   role: 'employer' | 'worker';
+  created_at: string;
+  updated_at: string;
 }
 
 interface AuthContextType {
@@ -18,6 +21,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -114,6 +118,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((prev) => prev ? { ...prev, ...data } : null);
   };
 
+  const refreshProfile = async () => {
+    if (!user) return;
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (profileData) {
+      setProfile(profileData as Profile);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -124,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithGoogle,
         signOut,
         updateProfile,
+        refreshProfile,
       }}
     >
       {children}

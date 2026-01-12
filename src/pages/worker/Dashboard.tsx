@@ -3,9 +3,10 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getContract, Contract } from "@/lib/contract-api";
-import { FileText, ChevronRight, Clock, CheckCircle2, Loader2, MapPin, Building2, Wallet } from "lucide-react";
+import { FileText, ChevronRight, Clock, CheckCircle2, Loader2, Building2, Wallet } from "lucide-react";
 import { CardSlide } from "@/components/ui/card-slide";
 import { supabase } from "@/integrations/supabase/client";
+import { AppDrawer } from "@/components/AppDrawer";
 import { toast } from "sonner";
 
 export default function WorkerDashboard() {
@@ -94,15 +95,21 @@ export default function WorkerDashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="px-6 pt-12 pb-6">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <p className="text-body text-muted-foreground mb-1">안녕하세요,</p>
-          <h1 className="text-title text-foreground">
-            {profile?.name || '근로자'}님 👋
-          </h1>
-        </motion.div>
+        <div className="flex items-start justify-between">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <p className="text-body text-muted-foreground mb-1">안녕하세요,</p>
+            <h1 className="text-title text-foreground">
+              {profile?.name || '근로자'}님 👋
+            </h1>
+          </motion.div>
+          
+          {user && (
+            <AppDrawer userType="worker" />
+          )}
+        </div>
       </div>
 
       {/* Pending Contracts */}
