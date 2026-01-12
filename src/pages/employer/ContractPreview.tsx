@@ -210,7 +210,7 @@ export default function ContractPreview() {
         workStartTime: contract?.work_start_time || '',
         workEndTime: contract?.work_end_time || '',
         breakTimeMinutes: contract?.break_time_minutes ?? contractForm.breakTimeMinutes,
-        workDaysPerWeek: contractForm.workDaysPerWeek || (contract?.work_days?.length || 0),
+        workDaysPerWeek: contract?.work_days_per_week ?? contractForm.workDaysPerWeek ?? (contract?.work_days?.length || 0),
         workLocation: contract?.work_location || '',
         paymentMonth: contractForm.paymentMonth,
         paymentDay: contractForm.paymentDay,
@@ -251,13 +251,15 @@ export default function ContractPreview() {
 
   // 근무일수 포맷팅
   const formatWorkDays = () => {
-    if (contractForm.workDaysPerWeek) {
-      return `주 ${contractForm.workDaysPerWeek}일`;
+    // DB에 저장된 work_days_per_week 우선, 없으면 contractForm
+    const daysPerWeek = contract?.work_days_per_week ?? contractForm.workDaysPerWeek;
+    if (daysPerWeek) {
+      return `주 ${daysPerWeek}일`;
     }
     if (contract?.work_days && contract.work_days.length > 0) {
       return contract.work_days.join(', ');
     }
-    return '미정';
+    return '협의 필요';
   };
 
   // 임금지급일 포맷팅
@@ -425,7 +427,7 @@ export default function ContractPreview() {
               <div className="flex-1">
                 <p className="text-caption text-muted-foreground mb-1">근무 시간</p>
                 <p className="text-body font-medium text-foreground">
-                  {contract.work_start_time} ~ {contract.work_end_time}
+                  {contract.work_start_time?.slice(0, 5)} ~ {contract.work_end_time?.slice(0, 5)}
                 </p>
                 <p className="text-caption text-muted-foreground mt-0.5">{formatWorkDays()}</p>
               </div>

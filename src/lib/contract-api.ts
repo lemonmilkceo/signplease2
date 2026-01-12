@@ -6,6 +6,7 @@ export interface ContractInput {
   hourlyWage: number;
   startDate: string;
   workDays: string[];
+  workDaysPerWeek?: number;
   workStartTime: string;
   workEndTime: string;
   workLocation: string;
@@ -28,6 +29,7 @@ export interface Contract {
   hourly_wage: number;
   start_date: string;
   work_days: string[];
+  work_days_per_week?: number | null;
   work_start_time: string;
   work_end_time: string;
   work_location: string;
@@ -85,6 +87,7 @@ export async function createContract(
       hourly_wage: data.hourlyWage,
       start_date: data.startDate,
       work_days: data.workDays,
+      work_days_per_week: data.workDaysPerWeek || null,
       work_start_time: data.workStartTime,
       work_end_time: data.workEndTime,
       work_location: data.workLocation,
