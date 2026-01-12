@@ -43,6 +43,7 @@ import { generateContractPDF, ContractPDFData } from "@/lib/pdf-utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ShareContractModal } from "@/components/ShareContractModal";
 import { WorkerReviewModal } from "@/components/WorkerReviewModal";
+import { PDFPreviewModal } from "@/components/PDFPreviewModal";
 import { getReviewByContract, WorkerReview, RATING_LABELS, RATING_COLORS } from "@/lib/review-api";
 import { isContractEditable, getRemainingEditDays, CONTRACT_EDIT_PERIOD_DAYS } from "@/lib/contract-utils";
 
@@ -65,6 +66,7 @@ export default function ContractPreview() {
   } | null>(null);
   const [isLoadingAdvice, setIsLoadingAdvice] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [isPDFPreviewOpen, setIsPDFPreviewOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [existingReview, setExistingReview] = useState<WorkerReview | null>(null);
@@ -345,43 +347,51 @@ export default function ContractPreview() {
     );
   }, [contract, contractForm.breakTimeMinutes, contractForm.workDaysPerWeek]);
 
+  // PDF 데이터 생성 헬퍼
+  const getPDFData = (): ContractPDFData => {
+    return {
+      employerName: contract!.employer_name,
+      workerName: contract!.worker_name,
+      hourlyWage: contract!.hourly_wage,
+      monthlyWage: contractForm.monthlyWage,
+      wageType: contractForm.wageType,
+      startDate: contract!.start_date,
+      endDate: contractForm.endDate,
+      noEndDate: contractForm.noEndDate,
+      workStartTime: contract!.work_start_time,
+      workEndTime: contract!.work_end_time,
+      workDays: contract!.work_days,
+      workDaysPerWeek: contractForm.workDaysPerWeek,
+      workLocation: contract!.work_location,
+      businessName: contractForm.businessName || contract!.business_name || undefined,
+      jobDescription: contractForm.jobDescription || contract!.job_description || undefined,
+      breakTimeMinutes: contractForm.breakTimeMinutes,
+      employerSignature: contract!.employer_signature,
+      workerSignature: contract!.worker_signature,
+      signedAt: contract!.signed_at,
+      includeWeeklyHolidayPay: contractForm.includeWeeklyHolidayPay,
+      wageBreakdown: wageBreakdown,
+      paymentDay: contractForm.paymentDay,
+      paymentMonth: contractForm.paymentMonth,
+      paymentEndOfMonth: contractForm.paymentEndOfMonth,
+      businessSize: contractForm.businessSize,
+      comprehensiveWageDetails: contractForm.comprehensiveWageDetails,
+    };
+  };
+
+  const getPDFFilename = () => `근로계약서_${contract!.worker_name}_${contract!.start_date}.pdf`;
+
+  const handlePreviewPDF = () => {
+    if (!contract) return;
+    setIsPDFPreviewOpen(true);
+  };
+
   const handleDownloadPDF = async () => {
     if (!contract) return;
     
     setIsDownloadingPDF(true);
     try {
-      const pdfData: ContractPDFData = {
-        employerName: contract.employer_name,
-        workerName: contract.worker_name,
-        hourlyWage: contract.hourly_wage,
-        monthlyWage: contractForm.monthlyWage,
-        wageType: contractForm.wageType,
-        startDate: contract.start_date,
-        endDate: contractForm.endDate,
-        noEndDate: contractForm.noEndDate,
-        workStartTime: contract.work_start_time,
-        workEndTime: contract.work_end_time,
-        workDays: contract.work_days,
-        workDaysPerWeek: contractForm.workDaysPerWeek,
-        workLocation: contract.work_location,
-        businessName: contractForm.businessName || contract.business_name || undefined,
-        jobDescription: contractForm.jobDescription || contract.job_description || undefined,
-        breakTimeMinutes: contractForm.breakTimeMinutes,
-        employerSignature: contract.employer_signature,
-        workerSignature: contract.worker_signature,
-        signedAt: contract.signed_at,
-        includeWeeklyHolidayPay: contractForm.includeWeeklyHolidayPay,
-        wageBreakdown: wageBreakdown,
-        // 추가 정보
-        paymentDay: contractForm.paymentDay,
-        paymentMonth: contractForm.paymentMonth,
-        paymentEndOfMonth: contractForm.paymentEndOfMonth,
-        businessSize: contractForm.businessSize,
-        comprehensiveWageDetails: contractForm.comprehensiveWageDetails,
-      };
-      
-      const filename = `근로계약서_${contract.worker_name}_${contract.start_date}.pdf`;
-      await generateContractPDF(pdfData, filename);
+      await generateContractPDF(getPDFData(), getPDFFilename());
       toast.success('PDF가 다운로드되었습니다');
     } catch (error) {
       console.error('PDF generation error:', error);
@@ -1085,11 +1095,28 @@ export default function ContractPreview() {
               </motion.div>
             )}
             
-            {/* PDF Download Button */}
+            {/* PDF Preview Button */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.55 }}
+            >
+              <Button
+                variant="outline"
+                size="full"
+                onClick={handlePreviewPDF}
+                className="gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                PDF 미리보기
+              </Button>
+            </motion.div>
+
+            {/* PDF Download Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
             >
               <Button
                 variant="outline"
@@ -1306,6 +1333,16 @@ export default function ContractPreview() {
           onOpenChange={setIsShareModalOpen}
           contractId={contract.id}
           workerName={contract.worker_name}
+        />
+      )}
+
+      {/* PDF Preview Modal */}
+      {contract && (
+        <PDFPreviewModal
+          isOpen={isPDFPreviewOpen}
+          onClose={() => setIsPDFPreviewOpen(false)}
+          pdfData={getPDFData()}
+          filename={getPDFFilename()}
         />
       )}
     </div>
