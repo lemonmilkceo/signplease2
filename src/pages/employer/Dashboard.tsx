@@ -360,10 +360,11 @@ export default function EmployerDashboard() {
           }}
           className="p-4"
         >
+          {/* Main content row */}
           <div className="flex items-center gap-3">
             {/* Selection checkbox */}
             {isSelectionMode && (
-              <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+              <div onClick={(e) => e.stopPropagation()}>
                 <Checkbox
                   checked={selectedIds.has(contract.id)}
                   onCheckedChange={() => toggleSelection(contract.id)}
@@ -372,43 +373,30 @@ export default function EmployerDashboard() {
             )}
             
             {/* Icon */}
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              isPending ? 'bg-warning/10' : 'bg-success/10'
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+              isPending ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-green-100 dark:bg-green-900/30'
             }`}>
-              <FileText className={`w-5 h-5 ${isPending ? 'text-warning' : 'text-success'}`} />
+              <FileText className={`w-5 h-5 ${isPending ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`} />
             </div>
             
             {/* Content */}
             <div className="flex-1 min-w-0">
-              {/* Top row: Name + Status */}
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-[15px] font-semibold text-foreground truncate">
+              {/* Name row */}
+              <div className="flex items-center gap-2">
+                <span className="text-base font-semibold text-foreground truncate">
                   {contract.worker_name}
-                </h3>
+                </span>
                 {getStatusBadge(contract.status)}
               </div>
               
-              {/* Bottom row: Details */}
-              <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                {contract.business_name && (
-                  <>
-                    <span className="truncate max-w-[100px]">{contract.business_name}</span>
-                    <span className="text-border">•</span>
-                  </>
-                )}
-                <span className="font-medium text-foreground/70">
-                  {contract.hourly_wage.toLocaleString()}원
-                </span>
-                <span className="text-border">•</span>
-                <span>
-                  {contract.work_days.length > 3 
-                    ? `주${contract.work_days.length}일` 
-                    : contract.work_days.slice(0, 3).join('·')}
-                </span>
-              </div>
+              {/* Info row */}
+              <p className="text-sm text-muted-foreground mt-0.5 truncate">
+                {contract.business_name && `${contract.business_name} · `}
+                시급 {contract.hourly_wage.toLocaleString()}원 · 주{contract.work_days.length}일
+              </p>
             </div>
             
-            {/* Right side: Edit button or Arrow */}
+            {/* Right side */}
             {!isSelectionMode && (
               <div className="flex items-center gap-2 flex-shrink-0">
                 {isPending && canEdit && (
@@ -417,23 +405,23 @@ export default function EmployerDashboard() {
                       e.stopPropagation();
                       navigate(`/employer/create?edit=${contract.id}`);
                     }}
-                    className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-xs font-medium"
+                    className="px-3 py-1.5 rounded-full bg-primary text-white text-xs font-medium hover:bg-primary/90 transition-colors"
                   >
                     수정
                   </button>
                 )}
-                <ChevronRight className="w-5 h-5 text-muted-foreground/50" />
+                <ChevronRight className="w-5 h-5 text-muted-foreground/40" />
               </div>
             )}
           </div>
           
-          {/* Warning badge for expiring edit period */}
+          {/* Edit period warning */}
           {isPending && canEdit && remainingDays <= 3 && remainingDays > 0 && (
-            <div className="mt-3 pt-3 border-t border-border">
-              <div className="flex items-center gap-1.5 text-xs text-warning">
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />
-                <span>수정 가능 기간 {remainingDays}일 남음</span>
-              </div>
+                수정 가능 기간이 {remainingDays}일 남았습니다
+              </p>
             </div>
           )}
         </CardSlide>
