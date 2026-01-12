@@ -95,6 +95,13 @@ const menuItems = userType === 'employer'
           description: '문의 및 도움말',
           onClick: () => toast.info('준비 중입니다'),
         },
+        {
+          icon: LogOut,
+          label: '로그아웃',
+          description: '계정에서 로그아웃',
+          onClick: handleSignOut,
+          isLogout: true,
+        },
       ]
     : [
         {
@@ -126,6 +133,13 @@ const menuItems = userType === 'employer'
           label: '고객센터',
           description: '문의 및 도움말',
           onClick: () => toast.info('준비 중입니다'),
+        },
+        {
+          icon: LogOut,
+          label: '로그아웃',
+          description: '계정에서 로그아웃',
+          onClick: handleSignOut,
+          isLogout: true,
         },
       ];
 
@@ -171,19 +185,27 @@ const menuItems = userType === 'employer'
         <Separator />
 
         {/* Menu Items */}
-        <div className="py-2">
+        <div className="py-2 flex-1 overflow-auto">
           {menuItems.map((item, index) => (
             <motion.button
               key={index}
               onClick={item.onClick}
-              className="w-full flex items-center gap-4 px-6 py-3.5 hover:bg-muted/50 transition-colors text-left"
+              className={`w-full flex items-center gap-4 px-6 py-3.5 hover:bg-muted/50 transition-colors text-left ${
+                (item as any).isLogout ? 'mt-2' : ''
+              }`}
               whileTap={{ scale: 0.98 }}
             >
-              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-                <item.icon className="w-5 h-5 text-muted-foreground" />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                (item as any).isLogout ? 'bg-destructive/10' : 'bg-muted'
+              }`}>
+                <item.icon className={`w-5 h-5 ${
+                  (item as any).isLogout ? 'text-destructive' : 'text-muted-foreground'
+                }`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground">{item.label}</p>
+                <p className={`font-medium ${
+                  (item as any).isLogout ? 'text-destructive' : 'text-foreground'
+                }`}>{item.label}</p>
                 <p className="text-xs text-muted-foreground">{item.description}</p>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -191,20 +213,9 @@ const menuItems = userType === 'employer'
           ))}
         </div>
 
-        <Separator />
-
-        {/* Logout Button & Version */}
-        <div className="p-6 pb-8 mt-auto">
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={handleSignOut}
-          >
-            <LogOut className="w-4 h-4" />
-            로그아웃
-          </Button>
-          
-          <p className="text-xs text-muted-foreground text-center mt-4">
+        {/* Version */}
+        <div className="p-6 pt-2">
+          <p className="text-xs text-muted-foreground text-center">
             싸인해주세요 v1.0.0
           </p>
         </div>
