@@ -191,12 +191,25 @@ export async function signContractAsWorker(
   signature: string,
   workerId: string
 ): Promise<Contract> {
-  return updateContract(contractId, {
+  // Update the contract with worker signature
+  const contract = await updateContract(contractId, {
     worker_id: workerId,
     worker_signature: signature,
     status: 'completed',
     signed_at: new Date().toISOString(),
   });
+
+  // Update contract invitation status to accepted
+  await supabase
+    .from('contract_invitations')
+    .update({
+      status: 'accepted',
+      worker_id: workerId,
+      accepted_at: new Date().toISOString(),
+    })
+    .eq('contract_id', contractId);
+
+  return contract;
 }
 
 // Explain a legal term using AI
