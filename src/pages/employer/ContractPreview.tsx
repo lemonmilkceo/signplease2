@@ -680,7 +680,7 @@ export default function ContractPreview() {
                 </div>
               )}
               
-              {/* 5인 이상 사업장: 추가 포괄임금 수당 세부 내역 */}
+              {/* 5인 이상 사업장: 포괄임금 수당 세부 내역 (법적 요건 준수) */}
               {(() => {
                 // DB 값 우선, 5인 이상일 때만 추가수당 표시
                 const size = contract.business_size ?? contractForm.businessSize;
@@ -699,92 +699,133 @@ export default function ContractPreview() {
                     breakTime
                   );
                   
-                  // 예상 발생 시간 (주 기준)
-                  // 연장근로: 일 8시간 초과분 × 주 근무일수
+                  // 고정 연장근로 시간 계산 (일 8시간 초과분)
                   const workDaysPerWeek = contractForm.workDaysPerWeek || contract.work_days?.length || 5;
                   const dailyOvertimeHours = Math.max(0, dailyHours - 8);
                   const weeklyOvertimeHours = dailyOvertimeHours * workDaysPerWeek;
                   const monthlyOvertimeHours = Math.round(weeklyOvertimeHours * 4.345 * 10) / 10;
                   
-                  // 휴일근로: 월 평균 4일 예상 (주 1회 휴일 근무 가정 시)
-                  // 실제 발생은 예측 불가하므로 0으로 표시
-                  const monthlyHolidayDays = 0; // 예측 불가
-                  
-                  // 연차: 1년 미만 근로자 기준 월 1일 발생
-                  const monthlyAnnualDays = 1;
-                  
-                  // 월 예상 금액 계산
+                  // 월 고정 연장근로수당
                   const monthlyOvertimePay = overtime ? Math.round(overtime * monthlyOvertimeHours) : 0;
-                  const monthlyHolidayPay = holiday ? Math.round(holiday * monthlyHolidayDays) : 0;
-                  const monthlyAnnualPay = annual ? Math.round(annual * monthlyAnnualDays) : 0;
                   
                   return (
                     <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <p className="text-caption font-medium text-blue-700 dark:text-blue-300">추가 수당 내역</p>
-                        <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-                          예상금액
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-blue-500/80 dark:text-blue-400/60 -mt-2">
-                        ※ 아래 금액은 근무조건 기준 예상치이며, 실제 발생 시간에 따라 달라질 수 있습니다.
+                      <p className="text-caption font-medium text-blue-700 dark:text-blue-300">
+                        포괄임금 수당 내역
                       </p>
                       
-                      {overtime && (
-                        <div className="p-2.5 rounded-lg bg-blue-100/50 dark:bg-blue-800/30 space-y-1.5">
-                          <div className="flex justify-between items-center">
-                            <span className="text-caption font-medium text-blue-700 dark:text-blue-300">연장근로수당</span>
-                            <span className="font-bold text-blue-800 dark:text-blue-200">
-                              월 {monthlyOvertimePay.toLocaleString()}원
-                            </span>
+                      {/* 연장근로수당 - 포괄임금에 포함 (고정 시간/금액 명시) */}
+                      {overtime && monthlyOvertimeHours > 0 && (
+                        <div className="p-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 space-y-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                              <span className="text-[10px] font-bold text-white">포함</span>
+                            </div>
+                            <span className="text-caption font-bold text-blue-800 dark:text-blue-200">연장근로수당</span>
                           </div>
-                          <div className="flex justify-between text-[11px] text-blue-600/70 dark:text-blue-400/60">
-                            <span>시간당 {overtime.toLocaleString()}원 × 월 {monthlyOvertimeHours}시간</span>
-                            <span className="text-blue-500/70">(일 8시간 초과분)</span>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-caption">
+                            <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20">
+                              <p className="text-[10px] text-blue-500 dark:text-blue-400 mb-0.5">월 고정 연장근로시간</p>
+                              <p className="font-bold text-blue-800 dark:text-blue-200">{monthlyOvertimeHours}시간</p>
+                            </div>
+                            <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20">
+                              <p className="text-[10px] text-blue-500 dark:text-blue-400 mb-0.5">월 고정 지급액</p>
+                              <p className="font-bold text-blue-800 dark:text-blue-200">{monthlyOvertimePay.toLocaleString()}원</p>
+                            </div>
                           </div>
+                          
+                          <p className="text-[10px] text-blue-600/70 dark:text-blue-400/60">
+                            • 시간당 {overtime.toLocaleString()}원 (기본시급의 150%)
+                          </p>
+                          <p className="text-[10px] text-blue-600/70 dark:text-blue-400/60">
+                            • 일 {dailyOvertimeHours}시간 × 주 {workDaysPerWeek}일 × 4.345주 = 월 {monthlyOvertimeHours}시간
+                          </p>
                         </div>
                       )}
                       
+                      {/* 휴일근로수당 - 포괄임금 미포함 (발생 시 별도 지급) */}
                       {holiday && (
-                        <div className="p-2.5 rounded-lg bg-blue-100/50 dark:bg-blue-800/30 space-y-1.5">
-                          <div className="flex justify-between items-center">
-                            <span className="text-caption font-medium text-blue-700 dark:text-blue-300">휴일근로수당</span>
-                            <span className="font-medium text-blue-700 dark:text-blue-300">
-                              발생 시 지급
-                            </span>
+                        <div className="p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 space-y-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
+                              <span className="text-[10px] font-bold text-white">별도</span>
+                            </div>
+                            <span className="text-caption font-bold text-amber-800 dark:text-amber-200">휴일근로수당</span>
                           </div>
-                          <div className="flex justify-between text-[11px] text-blue-600/70 dark:text-blue-400/60">
-                            <span>1일당 {holiday.toLocaleString()}원</span>
-                            <span className="text-blue-500/70">(휴일 근무 시)</span>
+                          
+                          <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20">
+                            <p className="text-[10px] text-amber-600 dark:text-amber-400 mb-0.5">휴일근로 시 지급 단가</p>
+                            <p className="font-bold text-amber-800 dark:text-amber-200">1일당 {holiday.toLocaleString()}원</p>
                           </div>
+                          
+                          <p className="text-[10px] text-amber-600/80 dark:text-amber-400/60">
+                            ※ 휴일근로는 사전 예측이 불가하여 포괄임금에 미포함
+                          </p>
+                          <p className="text-[10px] text-amber-600/80 dark:text-amber-400/60">
+                            ※ 휴일 근무 발생 시 실제 근무시간에 따라 별도 지급
+                          </p>
                         </div>
                       )}
                       
+                      {/* 연차유급휴가수당 - 포괄임금 미포함 (사후 정산 원칙) */}
                       {annual && (
-                        <div className="p-2.5 rounded-lg bg-blue-100/50 dark:bg-blue-800/30 space-y-1.5">
-                          <div className="flex justify-between items-center">
-                            <span className="text-caption font-medium text-blue-700 dark:text-blue-300">연차유급휴가 수당</span>
-                            <span className="font-bold text-blue-800 dark:text-blue-200">
-                              월 {monthlyAnnualPay.toLocaleString()}원
-                            </span>
+                        <div className="p-3 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-700 space-y-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+                              <span className="text-[10px] font-bold text-white">제외</span>
+                            </div>
+                            <span className="text-caption font-bold text-red-800 dark:text-red-200">연차유급휴가 수당</span>
                           </div>
-                          <div className="flex justify-between text-[11px] text-blue-600/70 dark:text-blue-400/60">
-                            <span>1일당 {annual.toLocaleString()}원 × 월 {monthlyAnnualDays}일</span>
-                            <span className="text-blue-500/70">(1년 미만 기준)</span>
+                          
+                          <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20">
+                            <p className="text-[10px] text-red-600 dark:text-red-400 mb-0.5">연차 미사용 시 정산 단가</p>
+                            <p className="font-bold text-red-800 dark:text-red-200">1일당 {annual.toLocaleString()}원</p>
+                          </div>
+                          
+                          <div className="p-2 rounded-lg bg-red-100/50 dark:bg-red-900/30 border border-red-200/50 dark:border-red-700/50">
+                            <p className="text-[10px] font-medium text-red-700 dark:text-red-300 mb-1">⚠️ 법적 안내</p>
+                            <p className="text-[10px] text-red-600/80 dark:text-red-400/60">
+                              연차수당의 사전 매수(포괄)는 근로자의 연차 사용권을 침해할 수 있어 법적 위험이 있습니다. 
+                              연차는 사후 정산이 원칙이므로 미사용 연차에 대해 퇴직 시 또는 연차 사용기간 만료 시 정산합니다.
+                            </p>
                           </div>
                         </div>
                       )}
                       
-                      {/* 추가수당 합계 */}
-                      <div className="pt-2 border-t border-blue-200/50 dark:border-blue-700/50">
-                        <div className="flex justify-between text-caption">
-                          <span className="text-blue-600/80 dark:text-blue-400/80">추가수당 월 예상 합계</span>
-                          <span className="font-bold text-blue-800 dark:text-blue-200">
-                            {(monthlyOvertimePay + monthlyAnnualPay).toLocaleString()}원~
-                          </span>
+                      {/* 월급 총액 구성 요약 */}
+                      <div className="pt-3 border-t border-blue-200/50 dark:border-blue-700/50 space-y-2">
+                        <p className="text-caption font-medium text-blue-700 dark:text-blue-300">월급 총액 구성</p>
+                        
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-caption">
+                            <span className="text-blue-600/80 dark:text-blue-400/80">기본급 + 주휴수당</span>
+                            <span className="font-medium text-blue-700 dark:text-blue-300">
+                              {wageBreakdown ? wageBreakdown.totalWage.toLocaleString() : '-'}원
+                            </span>
+                          </div>
+                          
+                          {overtime && monthlyOvertimeHours > 0 && (
+                            <div className="flex justify-between text-caption">
+                              <span className="text-blue-600/80 dark:text-blue-400/80">
+                                + 연장근로수당 (월 {monthlyOvertimeHours}시간 고정)
+                              </span>
+                              <span className="font-medium text-blue-700 dark:text-blue-300">
+                                {monthlyOvertimePay.toLocaleString()}원
+                              </span>
+                            </div>
+                          )}
+                          
+                          <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-700/50 flex justify-between text-body">
+                            <span className="font-medium text-blue-700 dark:text-blue-300">포괄임금 월 총액</span>
+                            <span className="font-bold text-blue-800 dark:text-blue-200">
+                              {((wageBreakdown?.totalWage || 0) + monthlyOvertimePay).toLocaleString()}원
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-[10px] text-blue-500/70 dark:text-blue-400/50 mt-1">
-                          휴일근로 발생 시 추가 지급
+                        
+                        <p className="text-[10px] text-blue-500/70 dark:text-blue-400/50 mt-2">
+                          ※ 휴일근로·연차수당은 발생/정산 시 별도 지급
                         </p>
                       </div>
                     </div>
