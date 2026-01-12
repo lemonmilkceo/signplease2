@@ -60,10 +60,12 @@ export const generateContractPDFBlob = async (data: ContractPDFData): Promise<Bl
   container.style.minHeight = '297mm';
   container.style.background = '#fff';
   container.style.zIndex = '-9999';
-  container.style.visibility = 'hidden';
+  container.style.visibility = 'visible';
+  container.style.opacity = '0.01'; // opacity를 완전히 0이 아닌 값으로 설정
   document.body.appendChild(container);
 
-  await new Promise(resolve => setTimeout(resolve, 100));
+  // DOM 렌더링 대기 시간 증가
+  await new Promise(resolve => setTimeout(resolve, 300));
 
   const options = {
     margin: [10, 10, 10, 10],
@@ -72,22 +74,22 @@ export const generateContractPDFBlob = async (data: ContractPDFData): Promise<Bl
       scale: 2, 
       useCORS: true,
       letterRendering: true,
-      logging: false,
-      windowWidth: 794,
-      windowHeight: 1123,
+      logging: true, // 디버깅용 로그 활성화
+      allowTaint: true,
+      backgroundColor: '#ffffff',
     },
     jsPDF: { 
       unit: 'mm', 
       format: 'a4', 
-      orientation: 'portrait' 
+      orientation: 'portrait' as const
     },
   };
 
   try {
-    container.style.visibility = 'visible';
-    container.style.opacity = '0';
-    
-    const blob = await html2pdf().set(options).from(container).outputPdf('blob');
+    // html2pdf 체이닝 방식으로 blob 생성
+    const worker = html2pdf().set(options).from(container);
+    const pdf = await worker.toPdf().get('pdf');
+    const blob = pdf.output('blob');
     return blob;
   } finally {
     document.body.removeChild(container);
@@ -95,17 +97,47 @@ export const generateContractPDFBlob = async (data: ContractPDFData): Promise<Bl
 };
 
 export const generateContractPDF = async (data: ContractPDFData, filename: string = '근로계약서.pdf') => {
-  const blob = await generateContractPDFBlob(data);
+  const htmlContent = createContractHTML(data);
   
-  // Blob을 다운로드
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  const container = document.createElement('div');
+  container.innerHTML = htmlContent;
+  container.style.position = 'fixed';
+  container.style.left = '0';
+  container.style.top = '0';
+  container.style.width = '210mm';
+  container.style.minHeight = '297mm';
+  container.style.background = '#fff';
+  container.style.zIndex = '-9999';
+  container.style.visibility = 'visible';
+  container.style.opacity = '0.01';
+  document.body.appendChild(container);
+
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  const options = {
+    margin: [10, 10, 10, 10],
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { 
+      scale: 2, 
+      useCORS: true,
+      letterRendering: true,
+      logging: false,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+    },
+    jsPDF: { 
+      unit: 'mm', 
+      format: 'a4', 
+      orientation: 'portrait' as const
+    },
+  };
+
+  try {
+    await html2pdf().set(options).from(container).save();
+  } finally {
+    document.body.removeChild(container);
+  }
 };
 
 const createContractHTML = (data: ContractPDFData): string => {
