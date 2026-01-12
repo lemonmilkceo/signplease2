@@ -859,8 +859,8 @@ export default function WorkerDashboard() {
         </div>
       )}
 
-      {/* Folders Section - Only show when not in a folder and not in trash */}
-      {!currentFolderId && !isTrashView && !isSelectionMode && (
+      {/* Folders Section - Only show when there are folders or trashed contracts */}
+      {!currentFolderId && !isTrashView && !isSelectionMode && (folders.length > 0 || trashedContracts.length > 0) && (
         <div className="px-6 mb-6">
           <motion.div
             initial={{ opacity: 0 }}
