@@ -650,12 +650,15 @@ export default function ContractPreview() {
               
               {/* 5인 이상 사업장: 추가 포괄임금 수당 세부 내역 (단위당) */}
               {(() => {
+                // DB 값 우선, 5인 이상일 때만 추가수당 표시
                 const size = contract.business_size ?? contractForm.businessSize;
+                if (size !== 'over5') return null;
+                
                 const overtime = contract.overtime_per_hour ?? contractForm.comprehensiveWageDetails?.overtimePerHour;
                 const holiday = contract.holiday_per_day ?? contractForm.comprehensiveWageDetails?.holidayPerDay;
                 const annual = contract.annual_leave_per_day ?? contractForm.comprehensiveWageDetails?.annualLeavePerDay;
                 
-                if (size === 'over5' && (overtime || holiday || annual)) {
+                if (overtime || holiday || annual) {
                   return (
                     <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
                       <p className="text-caption font-medium text-blue-700 dark:text-blue-300">추가 수당 내역 (단위당)</p>
