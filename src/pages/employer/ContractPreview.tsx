@@ -714,8 +714,8 @@ export default function ContractPreview() {
               </div>
               <span className="text-body font-medium">사업주 서명 완료</span>
             </motion.div>
-            {/* Chat with Worker Button - Only show if worker has signed */}
-            {contract.worker_id && (
+            {/* Chat with Worker Button - Show for signed contracts or demo */}
+            {(contract.worker_id || isDemo) && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -727,6 +727,10 @@ export default function ContractPreview() {
                       variant="outline"
                       size="full"
                       onClick={async () => {
+                        if (isDemo) {
+                          toast.info('데모 모드에서는 채팅 기능을 체험할 수 없어요. 로그인 후 이용해주세요!');
+                          return;
+                        }
                         if (!user || !contract.worker_id) return;
                         try {
                           await getOrCreateChatRoom(user.id, contract.worker_id);

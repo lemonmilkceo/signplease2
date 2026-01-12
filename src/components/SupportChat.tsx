@@ -55,9 +55,10 @@ export function SupportChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 온보딩/역할선택 화면에서는 숨김
-  const hiddenPaths = ['/', '/select-role'];
-  if (hiddenPaths.includes(location.pathname)) {
+  // 대시보드 페이지에서만 표시
+  const dashboardPaths = ['/employer', '/worker'];
+  const isDashboard = dashboardPaths.includes(location.pathname);
+  if (!isDashboard) {
     return null;
   }
 
@@ -350,11 +351,11 @@ export function SupportChat() {
   return (
     <>
       {/* Floating Button */}
-      <motion.button
+<motion.button
         onClick={() => setIsOpen(!isOpen)}
         className={`
           fixed bottom-6 right-6 z-50
-          w-14 h-14 rounded-full shadow-lg
+          w-11 h-11 rounded-full shadow-lg
           flex items-center justify-center
           transition-colors
           ${isOpen 
@@ -377,7 +378,7 @@ export function SupportChat() {
               exit={{ rotate: 90, opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </motion.div>
           ) : (
             <motion.div
@@ -387,7 +388,7 @@ export function SupportChat() {
               exit={{ rotate: -90, opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <MessageCircle className="w-6 h-6" />
+              <HelpCircle className="w-5 h-5" />
             </motion.div>
           )}
         </AnimatePresence>
