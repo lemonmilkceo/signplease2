@@ -47,12 +47,12 @@ export interface ContractPDFData {
   workerBankAccount?: string;
 }
 
-export const generateContractPDF = async (data: ContractPDFData, filename: string = '근로계약서.pdf') => {
+// PDF Blob 생성 (미리보기 및 다운로드용)
+export const generateContractPDFBlob = async (data: ContractPDFData): Promise<Blob> => {
   const htmlContent = createContractHTML(data);
   
   const container = document.createElement('div');
   container.innerHTML = htmlContent;
-  // 화면에 보이도록 설정 (visibility: hidden으로 숨기지만 렌더링은 됨)
   container.style.position = 'fixed';
   container.style.left = '0';
   container.style.top = '0';
@@ -63,20 +63,18 @@ export const generateContractPDF = async (data: ContractPDFData, filename: strin
   container.style.visibility = 'hidden';
   document.body.appendChild(container);
 
-  // DOM 렌더링을 위해 잠시 대기
   await new Promise(resolve => setTimeout(resolve, 100));
 
   const options = {
     margin: [10, 10, 10, 10],
-    filename: filename,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { 
       scale: 2, 
       useCORS: true,
       letterRendering: true,
       logging: false,
-      windowWidth: 794, // A4 width in pixels at 96 DPI
-      windowHeight: 1123, // A4 height in pixels at 96 DPI
+      windowWidth: 794,
+      windowHeight: 1123,
     },
     jsPDF: { 
       unit: 'mm', 
@@ -86,14 +84,28 @@ export const generateContractPDF = async (data: ContractPDFData, filename: strin
   };
 
   try {
-    // visibility를 잠시 visible로 변경하여 html2canvas가 렌더링할 수 있도록 함
     container.style.visibility = 'visible';
     container.style.opacity = '0';
     
-    await html2pdf().set(options).from(container).save();
+    const blob = await html2pdf().set(options).from(container).outputPdf('blob');
+    return blob;
   } finally {
     document.body.removeChild(container);
   }
+};
+
+export const generateContractPDF = async (data: ContractPDFData, filename: string = '근로계약서.pdf') => {
+  const blob = await generateContractPDFBlob(data);
+  
+  // Blob을 다운로드
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
 const createContractHTML = (data: ContractPDFData): string => {
