@@ -259,9 +259,11 @@ export default function ContractPreview() {
         wageType: contractForm.wageType,
         startDate: contract.start_date,
         endDate: contractForm.endDate,
+        noEndDate: contractForm.noEndDate,
         workStartTime: contract.work_start_time,
         workEndTime: contract.work_end_time,
         workDays: contract.work_days,
+        workDaysPerWeek: contractForm.workDaysPerWeek,
         workLocation: contract.work_location,
         businessName: contractForm.businessName || contract.business_name || undefined,
         jobDescription: contractForm.jobDescription || contract.job_description || undefined,
@@ -271,6 +273,12 @@ export default function ContractPreview() {
         signedAt: contract.signed_at,
         includeWeeklyHolidayPay: contractForm.includeWeeklyHolidayPay,
         wageBreakdown: wageBreakdown,
+        // 추가 정보
+        paymentDay: contractForm.paymentDay,
+        paymentMonth: contractForm.paymentMonth,
+        paymentEndOfMonth: contractForm.paymentEndOfMonth,
+        businessSize: contractForm.businessSize,
+        comprehensiveWageDetails: contractForm.comprehensiveWageDetails,
       };
       
       const filename = `근로계약서_${contract.worker_name}_${contract.start_date}.pdf`;

@@ -315,7 +315,8 @@ export default function CreateContract() {
         // 주 N일 또는 특정 요일 중 하나가 선택되어야 함
         return (contractForm.workDaysPerWeek || 0) >= 1 || (contractForm.workDays?.length || 0) >= 1;
       case 6:
-        return !!contractForm.workStartTime && !!contractForm.workEndTime;
+        // 기본값(09:00, 18:00)이 있어도 넘어갈 수 있음
+        return true;
       case 7:
         return contractForm.breakTimeMinutes !== undefined; // 휴게시간 필수
       case 8:
