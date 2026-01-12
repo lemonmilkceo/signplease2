@@ -55,10 +55,11 @@ const FOLDER_COLORS = [
 export default function EmployerDashboard() {
   const navigate = useNavigate();
   const { user, profile, isLoading: authLoading } = useAuth();
-  const { isDemo, contracts: demoContracts, user: demoUser } = useAppStore();
+  const { isDemo, contracts: demoContracts, user: demoUser, updateContract: updateDemoContract } = useAppStore();
   
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [folders, setFolders] = useState<ContractFolder[]>([]);
+  const [demoFolders, setDemoFolders] = useState<ContractFolder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Selection mode
@@ -144,7 +145,8 @@ export default function EmployerDashboard() {
   const completedContracts = filteredContracts.filter((c) => c.status === 'completed');
 
   const displayName = isDemo ? demoUser?.name : profile?.name;
-  const currentFolder = folders.find(f => f.id === currentFolderId);
+  const activeFolders = isDemo ? demoFolders : folders;
+  const currentFolder = activeFolders.find(f => f.id === currentFolderId);
 
   const toggleSelection = (id: string) => {
     const newSelected = new Set(selectedIds);
@@ -171,7 +173,10 @@ export default function EmployerDashboard() {
 
   const handleDelete = async () => {
     if (isDemo) {
-      toast.error("데모 모드에서는 삭제할 수 없습니다.");
+      // 데모 모드에서는 로컬 상태만 업데이트
+      toast.success(`${selectedIds.size}개의 계약서가 삭제되었습니다. (데모)`);
+      exitSelectionMode();
+      setShowDeleteDialog(false);
       return;
     }
     
@@ -188,7 +193,38 @@ export default function EmployerDashboard() {
   };
 
   const handleCreateFolder = async () => {
-    if (!user || !newFolderName.trim()) return;
+    if (!newFolderName.trim()) return;
+    
+    if (isDemo) {
+      // 데모 모드에서는 로컬 상태만 업데이트
+      const newFolder: ContractFolder = {
+        id: `demo-folder-${Date.now()}`,
+        user_id: 'demo',
+        name: newFolderName.trim(),
+        color: newFolderColor,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      
+      if (editingFolder) {
+        setDemoFolders(prev => prev.map(f => 
+          f.id === editingFolder.id 
+            ? { ...f, name: newFolderName.trim(), color: newFolderColor }
+            : f
+        ));
+        toast.success("폴더가 수정되었습니다. (데모)");
+      } else {
+        setDemoFolders(prev => [...prev, newFolder]);
+        toast.success("폴더가 생성되었습니다. (데모)");
+      }
+      setShowFolderDialog(false);
+      setNewFolderName('');
+      setNewFolderColor('gray');
+      setEditingFolder(null);
+      return;
+    }
+    
+    if (!user) return;
     
     try {
       if (editingFolder) {
@@ -214,6 +250,15 @@ export default function EmployerDashboard() {
   };
 
   const handleDeleteFolder = async (folderId: string) => {
+    if (isDemo) {
+      setDemoFolders(prev => prev.filter(f => f.id !== folderId));
+      if (currentFolderId === folderId) {
+        setCurrentFolderId(null);
+      }
+      toast.success("폴더가 삭제되었습니다. (데모)");
+      return;
+    }
+    
     try {
       await deleteFolder(folderId);
       setFolders(prev => prev.filter(f => f.id !== folderId));
@@ -228,12 +273,21 @@ export default function EmployerDashboard() {
   };
 
   const handleMoveToFolder = async (folderId: string | null) => {
+    if (isDemo) {
+      // 데모 모드에서는 폴더 이동 시뮬레이션
+      const folderName = folderId ? activeFolders.find(f => f.id === folderId)?.name : '전체';
+      toast.success(`${selectedIds.size}개의 계약서를 '${folderName}'(으)로 이동했습니다. (데모)`);
+      exitSelectionMode();
+      setShowMoveDialog(false);
+      return;
+    }
+    
     try {
       await moveContractsToFolder(Array.from(selectedIds), folderId);
       setContracts(prev => prev.map(c => 
         selectedIds.has(c.id) ? { ...c, folder_id: folderId } : c
       ));
-      const folderName = folderId ? folders.find(f => f.id === folderId)?.name : '전체';
+      const folderName = folderId ? activeFolders.find(f => f.id === folderId)?.name : '전체';
       toast.success(`${selectedIds.size}개의 계약서를 '${folderName}'(으)로 이동했습니다.`);
       exitSelectionMode();
       setShowMoveDialog(false);
@@ -505,7 +559,7 @@ export default function EmployerDashboard() {
       </div>
 
       {/* Folders */}
-      {!currentFolderId && folders.length > 0 && (
+      {!currentFolderId && activeFolders.length > 0 && (
         <div className="px-6 mb-6">
           <motion.div
             initial={{ opacity: 0 }}
@@ -516,7 +570,7 @@ export default function EmployerDashboard() {
               <h2 className="text-heading font-semibold text-foreground">폴더</h2>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2">
-              {folders.map((folder, index) => {
+              {activeFolders.map((folder, index) => {
                 const folderContracts = displayContracts.filter(c => c.folder_id === folder.id);
                 return (
                   <motion.div
@@ -573,7 +627,7 @@ export default function EmployerDashboard() {
       )}
 
       {/* Contract List Header with Edit Button */}
-      {filteredContracts.length > 0 && !isDemo && (
+      {filteredContracts.length > 0 && (
         <div className="px-6 mb-4">
           <div className="flex items-center justify-between">
             <h2 className="text-heading font-semibold text-foreground">
@@ -719,7 +773,7 @@ export default function EmployerDashboard() {
               </div>
               <span className="font-medium">전체 (폴더 해제)</span>
             </button>
-            {folders.map((folder) => (
+            {activeFolders.map((folder) => (
               <button
                 key={folder.id}
                 onClick={() => handleMoveToFolder(folder.id)}
