@@ -5,14 +5,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, User, Mail, Phone, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, Save, Loader2, UserX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     name: profile?.name || '',
     phone: profile?.phone || '',
@@ -173,6 +185,89 @@ export default function Profile() {
             </div>
           </div>
         </motion.div>
+
+        {/* Danger Zone */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-8 p-4 rounded-2xl border border-destructive/30 bg-destructive/5"
+        >
+          <h3 className="font-semibold text-destructive mb-3">위험 구역</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            회원 탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.
+          </p>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <UserX className="w-4 h-4 mr-2" />
+                회원 탈퇴
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>정말 탈퇴하시겠습니까?</AlertDialogTitle>
+                <AlertDialogDescription className="space-y-2">
+                  <p>회원 탈퇴 시 다음 데이터가 영구적으로 삭제됩니다:</p>
+                  <ul className="list-disc list-inside text-sm space-y-1 mt-2">
+                    <li>회원 정보 및 프로필</li>
+                    <li>작성한 모든 계약서</li>
+                    <li>잔여 크레딧 (환불 불가)</li>
+                    <li>채팅 내역</li>
+                  </ul>
+                  <p className="text-destructive font-medium mt-4">
+                    이 작업은 되돌릴 수 없습니다.
+                  </p>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>취소</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={async () => {
+                    setIsDeleting(true);
+                    try {
+                      // 회원 탈퇴 처리 (프로필 삭제 후 로그아웃)
+                      if (user) {
+                        // 프로필 삭제
+                        await supabase
+                          .from('profiles')
+                          .delete()
+                          .eq('user_id', user.id);
+                        
+                        // 로그아웃
+                        await signOut();
+                        toast.success('회원 탈퇴가 완료되었습니다');
+                        navigate('/');
+                      }
+                    } catch (error) {
+                      console.error('Error deleting account:', error);
+                      toast.error('회원 탈퇴에 실패했습니다. 고객센터로 문의해주세요.');
+                    } finally {
+                      setIsDeleting(false);
+                    }
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      처리 중...
+                    </>
+                  ) : (
+                    '탈퇴하기'
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </motion.div>
+
+        <div className="h-8" />
       </div>
     </div>
   );
