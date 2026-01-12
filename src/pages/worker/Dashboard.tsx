@@ -11,7 +11,7 @@ import { getUserPreferences, saveUserPreferences, SortOption } from "@/lib/prefe
 import { 
   FileText, ChevronRight, Clock, CheckCircle2, Loader2, Building2, Wallet, MessageCircle,
   X, Trash2, FolderPlus, MoreVertical, Folder, Edit2, FolderOpen, ArrowUpDown, 
-  Calendar, User, GripVertical, RotateCcw
+  Calendar, User, GripVertical, RotateCcw, Briefcase
 } from "lucide-react";
 import { CardSlide } from "@/components/ui/card-slide";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -831,6 +831,33 @@ export default function WorkerDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Career Button - Only show when not in a folder and not in trash */}
+      {!currentFolderId && !isTrashView && !isSelectionMode && (
+        <div className="px-6 mb-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.03 }}
+          >
+            <button
+              onClick={() => navigate('/worker/career')}
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 hover:from-primary/15 hover:to-primary/10 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                  <Briefcase className="w-5 h-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-foreground">내 경력</h3>
+                  <p className="text-xs text-muted-foreground">근무 이력 및 평가 확인</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </motion.div>
+        </div>
+      )}
 
       {/* Folders Section - Only show when not in a folder and not in trash */}
       {!currentFolderId && !isTrashView && !isSelectionMode && (

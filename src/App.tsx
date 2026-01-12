@@ -16,6 +16,7 @@ import CreateContract from "./pages/employer/CreateContract";
 import ContractPreview from "./pages/employer/ContractPreview";
 import WorkerDashboard from "./pages/worker/Dashboard";
 import WorkerContractView from "./pages/worker/ContractView";
+import WorkerCareer from "./pages/worker/Career";
 import WorkerOnboarding from "./pages/WorkerOnboarding";
 import EmployerChat from "./pages/employer/Chat";
 import WorkerChat from "./pages/worker/Chat";
@@ -59,6 +60,8 @@ const App = () => (
               <Route path="/worker" element={<WorkerDashboard />} />
               <Route path="/worker/onboarding" element={<WorkerOnboarding />} />
               <Route path="/worker/chat" element={<WorkerChat />} />
+              <Route path="/worker/contract/:id" element={<WorkerContractView />} />
+              <Route path="/worker/career" element={<WorkerCareer />} />
               <Route path="/worker/contract/:id" element={<WorkerContractView />} />
               
               {/* Common Routes */}
