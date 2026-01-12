@@ -1,5 +1,6 @@
 export type WageType = 'hourly' | 'monthly';
 export type BusinessSize = 'under5' | 'over5'; // 5인 미만 / 5인 이상
+export type BusinessType = 'restaurant' | 'cafe' | 'convenience' | 'retail' | 'beauty' | 'office' | 'other'; // 업종 타입
 
 // 포괄임금 수당 세부 내역 (5인 이상 사업장용) - 단위당 금액
 export interface ComprehensiveWageDetails {
@@ -37,6 +38,7 @@ export interface ContractData {
   includeWeeklyHolidayPay?: boolean;
   isComprehensiveWage?: boolean; // 포괄임금계약 여부
   businessSize?: BusinessSize; // 사업장 규모
+  businessType?: BusinessType; // 업종 타입
   comprehensiveWageDetails?: ComprehensiveWageDetails; // 포괄임금 수당 세부 내역
 }
 
@@ -205,6 +207,80 @@ export const JOB_KEYWORDS = [
   '배달 업무',
   '행정 및 사무 보조',
 ];
+
+// 업종별 키워드
+export const BUSINESS_TYPE_KEYWORDS: Record<BusinessType, string[]> = {
+  restaurant: [
+    '홀과 주방 등 가게 운영의 전반적인 관리',
+    '홀 서빙 및 고객 응대',
+    '주방 조리 및 음식 준비',
+    '설거지 및 주방 정리',
+    '테이블 세팅 및 정리',
+    '식재료 손질 및 준비',
+    '배달 음식 포장',
+    '매장 청소 및 정리',
+  ],
+  cafe: [
+    '음료 제조 (바리스타)',
+    '디저트 제조 및 플레이팅',
+    '홀 서빙 및 테이블 정리',
+    '계산 및 주문 접수',
+    '원두 관리 및 머신 청소',
+    '매장 청소 및 정리',
+    '재고 관리 및 발주',
+  ],
+  convenience: [
+    '계산 및 주문 접수',
+    '상품 진열 및 정리',
+    '재고 관리 및 검수',
+    '유통기한 관리',
+    '매장 청소 및 정리',
+    '배달 업무',
+    '택배 접수 및 관리',
+  ],
+  retail: [
+    '고객 응대 및 상담',
+    '상품 진열 및 정리',
+    '재고 관리 및 발주',
+    '계산 및 포장',
+    '매장 청소 및 정리',
+    '상품 설명 및 추천',
+  ],
+  beauty: [
+    '고객 응대 및 예약 관리',
+    '시술 보조',
+    '매장 청소 및 정리',
+    '재료 준비 및 정리',
+    '상담 및 서비스 안내',
+    '샴푸 및 두피 관리',
+  ],
+  office: [
+    '행정 및 사무 보조',
+    '전화 응대 및 고객 상담',
+    '문서 작성 및 정리',
+    '자료 입력 및 관리',
+    '일정 관리 및 예약',
+    '우편물 정리 및 발송',
+  ],
+  other: [
+    '홀과 주방 등 가게 운영의 전반적인 관리',
+    '고객 응대 및 서비스',
+    '매장 청소 및 정리',
+    '계산 및 주문 접수',
+    '재고 관리',
+    '배달 업무',
+  ],
+};
+
+export const BUSINESS_TYPE_INFO: Record<BusinessType, { label: string; emoji: string }> = {
+  restaurant: { label: '식당', emoji: '🍽️' },
+  cafe: { label: '카페', emoji: '☕' },
+  convenience: { label: '편의점', emoji: '🏪' },
+  retail: { label: '소매점', emoji: '🛍️' },
+  beauty: { label: '미용실/네일샵', emoji: '💇' },
+  office: { label: '사무직', emoji: '💼' },
+  other: { label: '상관없어요', emoji: '✨' },
+};
 
 export const CONTRACT_TEMPLATE = `
 근로계약서

@@ -9,7 +9,7 @@ import { ProgressSteps } from "@/components/ui/progress-steps";
 import { StepContainer, StepQuestion } from "@/components/ui/step-container";
 import { AIGenerating, LoadingSpinner } from "@/components/ui/loading";
 import { ArrowLeft, Calendar, Clock, Wallet, Banknote, Info, Sparkles, Coffee, Building2, Users, Search } from "lucide-react";
-import { WORK_DAYS_PER_WEEK, MINIMUM_WAGE_2026, MINIMUM_WAGE_WITH_HOLIDAY_2026, JOB_KEYWORDS, WageType, BusinessSize } from "@/lib/contract-types";
+import { WORK_DAYS_PER_WEEK, MINIMUM_WAGE_2026, MINIMUM_WAGE_WITH_HOLIDAY_2026, JOB_KEYWORDS, WageType, BusinessSize, BusinessType, BUSINESS_TYPE_KEYWORDS, BUSINESS_TYPE_INFO } from "@/lib/contract-types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { generateContractContent, createContract, getContract, updateContract as updateContractApi, ContractInput, Contract } from "@/lib/contract-api";
 import { toast } from "sonner";
@@ -18,6 +18,12 @@ import { parseWorkTime } from "@/lib/wage-utils";
 import { useKakaoAddress } from "@/hooks/useKakaoAddress";
 import { getRemainingCredits, useCredit } from "@/lib/credits-api";
 import { NoCreditModal } from "@/components/NoCreditModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const TOTAL_STEPS = 10;
 const BREAK_TIME_OPTIONS = [0, 30, 60, 90, 120];
@@ -34,8 +40,15 @@ export default function CreateContract() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingContract, setIsLoadingContract] = useState(false);
   const [showNoCreditModal, setShowNoCreditModal] = useState(false);
+  const [showBusinessTypeModal, setShowBusinessTypeModal] = useState(false);
   const [remainingCredits, setRemainingCredits] = useState<number>(5);
   const [originalContract, setOriginalContract] = useState<Contract | null>(null);
+
+  // 현재 선택된 업종에 맞는 키워드 가져오기
+  const currentJobKeywords = useMemo(() => {
+    const businessType = contractForm.businessType || 'other';
+    return BUSINESS_TYPE_KEYWORDS[businessType] || JOB_KEYWORDS;
+  }, [contractForm.businessType]);
 
   // Load existing contract for editing
   useEffect(() => {
@@ -142,10 +155,21 @@ export default function CreateContract() {
 
   const handleNext = () => {
     if (currentStep < TOTAL_STEPS) {
+      // Step 9 -> Step 10 넘어갈 때 업종 선택 모달 표시 (아직 업종을 선택하지 않은 경우)
+      if (currentStep === 9 && !contractForm.businessType) {
+        setShowBusinessTypeModal(true);
+        return;
+      }
       setCurrentStep(currentStep + 1);
     } else {
       handleGenerateContract();
     }
+  };
+
+  const handleBusinessTypeSelect = (type: BusinessType) => {
+    setContractForm({ businessType: type, jobDescription: '' }); // 업종 변경 시 기존 선택 초기화
+    setShowBusinessTypeModal(false);
+    setCurrentStep(10);
   };
 
   const handleBack = () => {
@@ -896,10 +920,32 @@ export default function CreateContract() {
           {/* Step 10: 업무 내용 및 수당 안내 */}
           {currentStep === 10 && (
             <StepContainer key="step-10" stepKey={10}>
+              {/* 업종 표시 및 변경 버튼 */}
+              {contractForm.businessType && (
+                <motion.div
+                  className="flex items-center justify-between mb-4 p-3 rounded-xl bg-primary/5 border border-primary/20"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{BUSINESS_TYPE_INFO[contractForm.businessType].emoji}</span>
+                    <span className="text-body font-medium text-foreground">
+                      {BUSINESS_TYPE_INFO[contractForm.businessType].label}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowBusinessTypeModal(true)}
+                    className="text-caption text-primary font-medium hover:underline"
+                  >
+                    업종 변경
+                  </button>
+                </motion.div>
+              )}
+              
               {/* 업무 내용 (공통) */}
               <StepQuestion question="주요 업무 내용을 알려주세요" description="선택사항이에요" className="mb-6" />
               <div className="flex flex-wrap gap-2 mb-6">
-                {JOB_KEYWORDS.map((keyword) => {
+                {currentJobKeywords.map((keyword) => {
                   const isSelected = contractForm.jobDescription?.includes(keyword);
                   return (
                     <motion.button key={keyword} className={`px-4 py-2 rounded-full text-caption font-medium transition-all ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`} onClick={() => { const current = contractForm.jobDescription || ''; const updated = isSelected ? current.split(', ').filter(k => k !== keyword).join(', ') : current ? `${current}, ${keyword}` : keyword; setContractForm({ jobDescription: updated }); }} whileTap={{ scale: 0.95 }}>{keyword}</motion.button>
@@ -1050,6 +1096,36 @@ export default function CreateContract() {
         onOpenChange={setShowNoCreditModal}
         remainingCredits={remainingCredits}
       />
+
+      {/* Business Type Selection Modal */}
+      <Dialog open={showBusinessTypeModal} onOpenChange={setShowBusinessTypeModal}>
+        <DialogContent className="max-w-sm mx-auto max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-lg">업종을 선택해주세요</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-2 overflow-y-auto">
+            {(Object.entries(BUSINESS_TYPE_INFO) as [BusinessType, { label: string; emoji: string }][]).map(([type, info]) => (
+              <motion.button
+                key={type}
+                onClick={() => handleBusinessTypeSelect(type)}
+                className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${
+                  contractForm.businessType === type
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-card hover:bg-muted/50'
+                }`}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="text-2xl">{info.emoji}</span>
+                <span className={`text-body font-medium ${
+                  contractForm.businessType === type ? 'text-primary' : 'text-foreground'
+                }`}>
+                  {info.label}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
