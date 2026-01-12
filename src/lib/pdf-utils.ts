@@ -52,10 +52,19 @@ export const generateContractPDF = async (data: ContractPDFData, filename: strin
   
   const container = document.createElement('div');
   container.innerHTML = htmlContent;
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
+  // 화면에 보이도록 설정 (visibility: hidden으로 숨기지만 렌더링은 됨)
+  container.style.position = 'fixed';
+  container.style.left = '0';
   container.style.top = '0';
+  container.style.width = '210mm';
+  container.style.minHeight = '297mm';
+  container.style.background = '#fff';
+  container.style.zIndex = '-9999';
+  container.style.visibility = 'hidden';
   document.body.appendChild(container);
+
+  // DOM 렌더링을 위해 잠시 대기
+  await new Promise(resolve => setTimeout(resolve, 100));
 
   const options = {
     margin: [10, 10, 10, 10],
@@ -65,6 +74,9 @@ export const generateContractPDF = async (data: ContractPDFData, filename: strin
       scale: 2, 
       useCORS: true,
       letterRendering: true,
+      logging: false,
+      windowWidth: 794, // A4 width in pixels at 96 DPI
+      windowHeight: 1123, // A4 height in pixels at 96 DPI
     },
     jsPDF: { 
       unit: 'mm', 
@@ -74,6 +86,10 @@ export const generateContractPDF = async (data: ContractPDFData, filename: strin
   };
 
   try {
+    // visibility를 잠시 visible로 변경하여 html2canvas가 렌더링할 수 있도록 함
+    container.style.visibility = 'visible';
+    container.style.opacity = '0';
+    
     await html2pdf().set(options).from(container).save();
   } finally {
     document.body.removeChild(container);
