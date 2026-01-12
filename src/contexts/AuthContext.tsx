@@ -9,6 +9,9 @@ interface Profile {
   email: string | null;
   phone: string | null;
   role: 'employer' | 'worker';
+  resident_number: string | null;
+  bank_name: string | null;
+  bank_account: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -161,31 +161,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bank_account: string | null
+          bank_name: string | null
           created_at: string
           email: string | null
           id: string
           name: string | null
           phone: string | null
+          resident_number: string | null
           role: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          bank_account?: string | null
+          bank_name?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name?: string | null
           phone?: string | null
+          resident_number?: string | null
           role?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          bank_account?: string | null
+          bank_name?: string | null
           created_at?: string
           email?: string | null
           id?: string
           name?: string | null
           phone?: string | null
+          resident_number?: string | null
           role?: string
           updated_at?: string
           user_id?: string

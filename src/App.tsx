@@ -15,6 +15,7 @@ import CreateContract from "./pages/employer/CreateContract";
 import ContractPreview from "./pages/employer/ContractPreview";
 import WorkerDashboard from "./pages/worker/Dashboard";
 import WorkerContractView from "./pages/worker/ContractView";
+import WorkerOnboarding from "./pages/WorkerOnboarding";
 import Pricing from "./pages/Pricing";
 import Profile from "./pages/Profile";
 import PaymentHistory from "./pages/PaymentHistory";
@@ -41,6 +42,7 @@ const App = () => (
               
               {/* Worker Routes */}
               <Route path="/worker" element={<WorkerDashboard />} />
+              <Route path="/worker/onboarding" element={<WorkerOnboarding />} />
               <Route path="/worker/contract/:id" element={<WorkerContractView />} />
               
               {/* Common Routes */}

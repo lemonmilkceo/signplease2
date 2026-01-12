@@ -19,21 +19,31 @@ export default function SelectRole() {
         name: role === 'employer' ? '김사장님' : '이영희',
         role,
       });
+      if (role === 'employer') {
+        navigate('/employer');
+      } else {
+        navigate('/worker');
+      }
     } else if (user) {
       // Real user - update profile in database
       try {
         await updateProfile({ role });
+        
+        if (role === 'employer') {
+          navigate('/employer');
+        } else {
+          // Check if worker already has bank info, if not show onboarding
+          if (!profile?.bank_account && !profile?.resident_number) {
+            navigate('/worker/onboarding');
+          } else {
+            navigate('/worker');
+          }
+        }
       } catch (error) {
         console.error("Error updating profile:", error);
         toast.error("프로필 업데이트에 실패했습니다.");
         return;
       }
-    }
-
-    if (role === 'employer') {
-      navigate('/employer');
-    } else {
-      navigate('/worker');
     }
   };
 
