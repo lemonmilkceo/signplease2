@@ -261,8 +261,10 @@ export type Database = {
         Row: {
           bank_account: string | null
           bank_name: string | null
+          birth_date: string | null
           created_at: string
           email: string | null
+          gender: string | null
           id: string
           name: string | null
           phone: string | null
@@ -274,8 +276,10 @@ export type Database = {
         Insert: {
           bank_account?: string | null
           bank_name?: string | null
+          birth_date?: string | null
           created_at?: string
           email?: string | null
+          gender?: string | null
           id?: string
           name?: string | null
           phone?: string | null
@@ -287,8 +291,10 @@ export type Database = {
         Update: {
           bank_account?: string | null
           bank_name?: string | null
+          birth_date?: string | null
           created_at?: string
           email?: string | null
+          gender?: string | null
           id?: string
           name?: string | null
           phone?: string | null

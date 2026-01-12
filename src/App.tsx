@@ -22,6 +22,7 @@ import WorkerChat from "./pages/worker/Chat";
 import Pricing from "./pages/Pricing";
 import Profile from "./pages/Profile";
 import PaymentHistory from "./pages/PaymentHistory";
+import Signup from "./pages/Signup";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Splash />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/signup" element={<Signup />} />
               <Route path="/select-role" element={<SelectRole />} />
               
 {/* Employer Routes */}
