@@ -386,13 +386,13 @@ export default function EmployerDashboard() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // TODO: Navigate to edit with contract data
                         navigate(`/employer/create?edit=${contract.id}`);
                       }}
-                      className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
+                      className="px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors flex items-center gap-1.5"
                       title={`수정 가능 (${remainingDays}일 남음)`}
                     >
-                      <Edit className="w-4 h-4 text-primary" />
+                      <Edit className="w-3.5 h-3.5 text-primary" />
+                      <span className="text-xs font-medium text-primary">수정하기</span>
                     </button>
                   )}
                 </div>
