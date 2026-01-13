@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, User, Mail, Phone, Save, Loader2, UserX, AlertTriangle, Coins, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, Save, Loader2, UserX, AlertTriangle, Coins, Lock, Eye, EyeOff, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -40,6 +40,10 @@ export default function Profile() {
     phone: profile?.phone || '',
   });
 
+  // 프로필 사진 상태
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
   // 비밀번호 변경 상태
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -51,6 +55,69 @@ export default function Profile() {
     confirmPassword: '',
   });
   const [passwordError, setPasswordError] = useState('');
+
+  // 프로필 사진 URL 로드
+  useEffect(() => {
+    if (profile && (profile as any).avatar_url) {
+      setAvatarUrl((profile as any).avatar_url);
+    }
+  }, [profile]);
+
+  // 프로필 사진 업로드 처리
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // 파일 타입 검증
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드할 수 있습니다');
+      return;
+    }
+
+    // 파일 크기 검증 (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('파일 크기는 5MB 이하여야 합니다');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      // 기존 파일 삭제 시도 (에러 무시)
+      await supabase.storage.from('avatars').remove([`${user.id}/avatar.jpg`, `${user.id}/avatar.png`, `${user.id}/avatar.jpeg`, `${user.id}/avatar.webp`]);
+
+      // 새 파일 업로드
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // 공개 URL 가져오기
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // 프로필 테이블 업데이트
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl + '?t=' + Date.now()); // 캐시 버스팅
+      await refreshProfile?.();
+      toast.success('프로필 사진이 업로드되었습니다');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('프로필 사진 업로드에 실패했습니다');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   // 유료 크레딧 확인 함수
   const checkPaidCredits = async () => {
@@ -210,8 +277,32 @@ export default function Profile() {
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col items-center mb-8"
         >
-          <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <User className="w-12 h-12 text-primary" />
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4 overflow-hidden">
+              {avatarUrl ? (
+                <img 
+                  src={avatarUrl} 
+                  alt="프로필 사진" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-12 h-12 text-primary" />
+              )}
+            </div>
+            <label className="absolute bottom-3 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors shadow-lg">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+                disabled={isUploadingAvatar}
+              />
+              {isUploadingAvatar ? (
+                <Loader2 className="w-4 h-4 text-primary-foreground animate-spin" />
+              ) : (
+                <Camera className="w-4 h-4 text-primary-foreground" />
+              )}
+            </label>
           </div>
           <p className="text-xl font-bold text-foreground">
             {formData.name || '이름 없음'}
