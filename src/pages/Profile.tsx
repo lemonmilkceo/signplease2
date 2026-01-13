@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, User, Mail, Phone, Save, Loader2, UserX, AlertTriangle, Coins, Lock, Eye, EyeOff, Camera } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, Save, Loader2, UserX, AlertTriangle, Coins, Lock, Eye, EyeOff, Camera, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -43,6 +43,7 @@ export default function Profile() {
   // 프로필 사진 상태
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isDeletingAvatar, setIsDeletingAvatar] = useState(false);
 
   // 비밀번호 변경 상태
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -116,6 +117,39 @@ export default function Profile() {
       toast.error('프로필 사진 업로드에 실패했습니다');
     } finally {
       setIsUploadingAvatar(false);
+    }
+  };
+
+  // 프로필 사진 삭제 처리
+  const handleAvatarDelete = async () => {
+    if (!user) return;
+
+    setIsDeletingAvatar(true);
+    try {
+      // 스토리지에서 파일 삭제 시도
+      await supabase.storage.from('avatars').remove([
+        `${user.id}/avatar.jpg`, 
+        `${user.id}/avatar.png`, 
+        `${user.id}/avatar.jpeg`, 
+        `${user.id}/avatar.webp`
+      ]);
+
+      // 프로필 테이블 업데이트
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: null })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(null);
+      await refreshProfile?.();
+      toast.success('프로필 사진이 삭제되었습니다');
+    } catch (error) {
+      console.error('Error deleting avatar:', error);
+      toast.error('프로필 사진 삭제에 실패했습니다');
+    } finally {
+      setIsDeletingAvatar(false);
     }
   };
 
@@ -289,6 +323,7 @@ export default function Profile() {
                 <User className="w-12 h-12 text-primary" />
               )}
             </div>
+            {/* 업로드 버튼 */}
             <label className="absolute bottom-3 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors shadow-lg">
               <input
                 type="file"
@@ -303,6 +338,20 @@ export default function Profile() {
                 <Camera className="w-4 h-4 text-primary-foreground" />
               )}
             </label>
+            {/* 삭제 버튼 (사진이 있을 때만 표시) */}
+            {avatarUrl && (
+              <button
+                onClick={handleAvatarDelete}
+                disabled={isDeletingAvatar}
+                className="absolute bottom-3 left-0 w-8 h-8 bg-destructive rounded-full flex items-center justify-center cursor-pointer hover:bg-destructive/90 transition-colors shadow-lg"
+              >
+                {isDeletingAvatar ? (
+                  <Loader2 className="w-4 h-4 text-destructive-foreground animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 text-destructive-foreground" />
+                )}
+              </button>
+            )}
           </div>
           <p className="text-xl font-bold text-foreground">
             {formData.name || '이름 없음'}
