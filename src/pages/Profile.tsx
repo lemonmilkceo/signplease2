@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, User, Mail, Phone, Save, Loader2, UserX } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, Save, Loader2, UserX, AlertTriangle, Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -20,15 +20,92 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+interface PaidCreditsInfo {
+  contractCredits: number;
+  legalReviewCredits: number;
+  totalPaidCredits: number;
+}
+
 export default function Profile() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCheckingCredits, setIsCheckingCredits] = useState(false);
+  const [paidCreditsInfo, setPaidCreditsInfo] = useState<PaidCreditsInfo | null>(null);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [formData, setFormData] = useState({
     name: profile?.name || '',
     phone: profile?.phone || '',
   });
+
+  // 유료 크레딧 확인 함수
+  const checkPaidCredits = async () => {
+    if (!user) return null;
+
+    setIsCheckingCredits(true);
+    try {
+      // 계약서 생성 크레딧 확인
+      const { data: userCredits } = await supabase
+        .from('user_credits')
+        .select('paid_credits')
+        .eq('user_id', user.id)
+        .single();
+
+      // AI 노무사 법률 검토 크레딧 확인
+      const { data: legalCredits } = await supabase
+        .from('legal_review_credits')
+        .select('paid_reviews')
+        .eq('user_id', user.id)
+        .single();
+
+      const contractCredits = userCredits?.paid_credits ?? 0;
+      const legalReviewCredits = legalCredits?.paid_reviews ?? 0;
+      const totalPaidCredits = contractCredits + legalReviewCredits;
+
+      const info = { contractCredits, legalReviewCredits, totalPaidCredits };
+      setPaidCreditsInfo(info);
+      return info;
+    } catch (error) {
+      console.error('Error checking credits:', error);
+      return { contractCredits: 0, legalReviewCredits: 0, totalPaidCredits: 0 };
+    } finally {
+      setIsCheckingCredits(false);
+    }
+  };
+
+  // 탈퇴 버튼 클릭 시
+  const handleDeleteClick = async () => {
+    const info = await checkPaidCredits();
+    if (info && info.totalPaidCredits > 0) {
+      setShowRefundDialog(true);
+    } else {
+      setShowDeleteDialog(true);
+    }
+  };
+
+  // 실제 탈퇴 처리
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      if (user) {
+        await supabase
+          .from('profiles')
+          .delete()
+          .eq('user_id', user.id);
+        
+        await signOut();
+        toast.success('회원 탈퇴가 완료되었습니다');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('회원 탈퇴에 실패했습니다. 고객센터로 문의해주세요.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -198,20 +275,104 @@ export default function Profile() {
             회원 탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.
           </p>
           
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                className="w-full border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+          <Button 
+            variant="outline" 
+            className="w-full border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            onClick={handleDeleteClick}
+            disabled={isCheckingCredits}
+          >
+            {isCheckingCredits ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <UserX className="w-4 h-4 mr-2" />
+            )}
+            회원 탈퇴
+          </Button>
+        </motion.div>
+
+        {/* 환불 안내 다이얼로그 (유료 크레딧이 있는 경우) */}
+        <AlertDialog open={showRefundDialog} onOpenChange={setShowRefundDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                환불 안내
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-4">
+                  <p>현재 사용하지 않은 유료 크레딧이 남아있습니다.</p>
+                  
+                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium">
+                      <Coins className="w-4 h-4" />
+                      잔여 유료 크레딧
+                    </div>
+                    {paidCreditsInfo && paidCreditsInfo.contractCredits > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">계약서 생성 크레딧</span>
+                        <span className="font-medium text-foreground">{paidCreditsInfo.contractCredits}개</span>
+                      </div>
+                    )}
+                    {paidCreditsInfo && paidCreditsInfo.legalReviewCredits > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">AI 노무사 검토 크레딧</span>
+                        <span className="font-medium text-foreground">{paidCreditsInfo.legalReviewCredits}개</span>
+                      </div>
+                    )}
+                    <div className="border-t border-amber-200 dark:border-amber-800 pt-2 mt-2">
+                      <div className="flex justify-between text-sm font-semibold">
+                        <span>총 유료 크레딧</span>
+                        <span className="text-amber-600 dark:text-amber-400">{paidCreditsInfo?.totalPaidCredits}개</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-sm space-y-2">
+                    <p className="font-medium text-foreground">환불을 원하시면:</p>
+                    <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                      <li>고객센터로 환불 요청을 해주세요</li>
+                      <li>결제 내역 확인 후 환불 처리됩니다</li>
+                      <li>환불 완료 후 탈퇴를 진행해주세요</li>
+                    </ol>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    * 환불 없이 탈퇴하시면 잔여 크레딧은 소멸됩니다
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel>취소</AlertDialogCancel>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRefundDialog(false);
+                  navigate('/support');
+                }}
               >
-                <UserX className="w-4 h-4 mr-2" />
-                회원 탈퇴
+                고객센터로 이동
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>정말 탈퇴하시겠습니까?</AlertDialogTitle>
-                <AlertDialogDescription className="space-y-2">
+              <AlertDialogAction
+                onClick={() => {
+                  setShowRefundDialog(false);
+                  setShowDeleteDialog(true);
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                환불 없이 탈퇴
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* 최종 탈퇴 확인 다이얼로그 */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>정말 탈퇴하시겠습니까?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2">
                   <p>회원 탈퇴 시 다음 데이터가 영구적으로 삭제됩니다:</p>
                   <ul className="list-disc list-inside text-sm space-y-1 mt-2">
                     <li>회원 정보 및 프로필</li>
@@ -222,50 +383,28 @@ export default function Profile() {
                   <p className="text-destructive font-medium mt-4">
                     이 작업은 되돌릴 수 없습니다.
                   </p>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>취소</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={async () => {
-                    setIsDeleting(true);
-                    try {
-                      // 회원 탈퇴 처리 (프로필 삭제 후 로그아웃)
-                      if (user) {
-                        // 프로필 삭제
-                        await supabase
-                          .from('profiles')
-                          .delete()
-                          .eq('user_id', user.id);
-                        
-                        // 로그아웃
-                        await signOut();
-                        toast.success('회원 탈퇴가 완료되었습니다');
-                        navigate('/');
-                      }
-                    } catch (error) {
-                      console.error('Error deleting account:', error);
-                      toast.error('회원 탈퇴에 실패했습니다. 고객센터로 문의해주세요.');
-                    } finally {
-                      setIsDeleting(false);
-                    }
-                  }}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      처리 중...
-                    </>
-                  ) : (
-                    '탈퇴하기'
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </motion.div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>취소</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteAccount}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    처리 중...
+                  </>
+                ) : (
+                  '탈퇴하기'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <div className="h-8" />
       </div>
