@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, User, Mail, Phone, Save, Loader2, UserX, AlertTriangle, Coins } from "lucide-react";
+import { ArrowLeft, User, Mail, Phone, Save, Loader2, UserX, AlertTriangle, Coins, Lock, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -39,6 +39,18 @@ export default function Profile() {
     name: profile?.name || '',
     phone: profile?.phone || '',
   });
+
+  // 비밀번호 변경 상태
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [passwordError, setPasswordError] = useState('');
 
   // 유료 크레딧 확인 함수
   const checkPaidCredits = async () => {
@@ -104,6 +116,48 @@ export default function Profile() {
       toast.error('회원 탈퇴에 실패했습니다. 고객센터로 문의해주세요.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // 비밀번호 변경 처리
+  const handleChangePassword = async () => {
+    setPasswordError('');
+
+    // 유효성 검사
+    if (!passwordData.newPassword || !passwordData.confirmPassword) {
+      setPasswordError('새 비밀번호를 입력해주세요');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('비밀번호는 6자 이상이어야 합니다');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('새 비밀번호가 일치하지 않습니다');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+
+      if (error) throw error;
+
+      toast.success('비밀번호가 변경되었습니다');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+      if (error.message?.includes('same password')) {
+        setPasswordError('현재 비밀번호와 동일합니다');
+      } else {
+        setPasswordError('비밀번호 변경에 실패했습니다');
+      }
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -236,12 +290,88 @@ export default function Profile() {
           </Button>
         </motion.div>
 
+        {/* Password Change */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mt-8 p-4 rounded-2xl bg-muted/50"
+        >
+          <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            비밀번호 변경
+          </h3>
+          <div className="space-y-4">
+            {/* New Password */}
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">새 비밀번호</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  placeholder="6자 이상 입력"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">새 비밀번호 확인</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  placeholder="비밀번호를 다시 입력"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {passwordError && (
+              <p className="text-sm text-destructive">{passwordError}</p>
+            )}
+
+            <Button
+              onClick={handleChangePassword}
+              disabled={isChangingPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+              variant="outline"
+              className="w-full"
+            >
+              {isChangingPassword ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Lock className="w-4 h-4 mr-2" />
+              )}
+              비밀번호 변경
+            </Button>
+          </div>
+        </motion.div>
+
         {/* Account Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mt-12 p-4 rounded-2xl bg-muted/50"
+          className="mt-8 p-4 rounded-2xl bg-muted/50"
         >
           <h3 className="font-semibold text-foreground mb-3">계정 정보</h3>
           <div className="space-y-2 text-sm">
