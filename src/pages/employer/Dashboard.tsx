@@ -21,6 +21,7 @@ import {
   permanentDeleteContractsForEmployer
 } from "@/lib/contract-api";
 import { getUserPreferences, saveUserPreferences, SortOption } from "@/lib/preferences-api";
+import { getEmployerChatRooms } from "@/lib/chat-api";
 import { CreditsBadge } from "@/components/CreditsBadge";
 import { AppDrawer } from "@/components/AppDrawer";
 import { toast } from "sonner";
@@ -210,6 +211,7 @@ export default function EmployerDashboard() {
   const [folders, setFolders] = useState<ContractFolder[]>([]);
   const [demoFolders, setDemoFolders] = useState<ContractFolder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   
   // Selection mode
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -262,15 +264,20 @@ export default function EmployerDashboard() {
       }
 
       try {
-        const [contractsData, foldersData, prefsData, trashedData] = await Promise.all([
+        const [contractsData, foldersData, prefsData, trashedData, chatRooms] = await Promise.all([
           getEmployerContracts(user.id),
           getFolders(user.id),
           getUserPreferences(user.id, 'employer'),
-          getEmployerTrashedContracts(user.id)
+          getEmployerTrashedContracts(user.id),
+          getEmployerChatRooms(user.id)
         ]);
         setContracts(contractsData);
         setFolders(foldersData);
         setTrashedContracts(trashedData);
+        
+        // Calculate total unread messages
+        const totalUnread = chatRooms.reduce((sum, room) => sum + (room.unread_count || 0), 0);
+        setUnreadChatCount(totalUnread);
         
         // Load saved preferences
         if (prefsData) {
@@ -792,7 +799,20 @@ export default function EmployerDashboard() {
             </h1>
           </motion.div>
 
-          <AppDrawer userType="employer" />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/employer/chat')}
+              className="relative p-2 rounded-full hover:bg-muted transition-colors"
+            >
+              <MessageCircle className="w-5 h-5" />
+              {unreadChatCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-xs font-bold rounded-full flex items-center justify-center px-1">
+                  {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                </span>
+              )}
+            </button>
+            <AppDrawer userType="employer" />
+          </div>
         </div>
         
         {/* Credits Badge */}
