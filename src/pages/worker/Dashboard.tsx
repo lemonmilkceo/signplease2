@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { AppDrawer } from "@/components/AppDrawer";
 import { toast } from "sonner";
+import { useChatRealtime } from "@/hooks/useChatRealtime";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -232,6 +233,29 @@ export default function WorkerDashboard() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  const fetchChatUnread = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const chatRooms = await getWorkerChatRooms(user.id);
+      const totalUnread = chatRooms.reduce((sum, room) => sum + (room.unread_count || 0), 0);
+      setUnreadChatCount(totalUnread);
+    } catch (error) {
+      console.error("Error fetching chat unread count:", error);
+    }
+  }, [user]);
+
+  // Real-time subscription for chat messages
+  useChatRealtime({
+    userId: user?.id,
+    onNewMessage: () => {
+      fetchChatUnread();
+    },
+    onMessageRead: () => {
+      fetchChatUnread();
+    },
+  });
 
   useEffect(() => {
     async function fetchData() {

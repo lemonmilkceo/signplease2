@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +25,7 @@ import { getEmployerChatRooms } from "@/lib/chat-api";
 import { CreditsBadge } from "@/components/CreditsBadge";
 import { AppDrawer } from "@/components/AppDrawer";
 import { toast } from "sonner";
+import { useChatRealtime } from "@/hooks/useChatRealtime";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -250,6 +251,29 @@ export default function EmployerDashboard() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  const fetchChatUnread = useCallback(async () => {
+    if (!user || isDemo) return;
+    
+    try {
+      const chatRooms = await getEmployerChatRooms(user.id);
+      const totalUnread = chatRooms.reduce((sum, room) => sum + (room.unread_count || 0), 0);
+      setUnreadChatCount(totalUnread);
+    } catch (error) {
+      console.error("Error fetching chat unread count:", error);
+    }
+  }, [user, isDemo]);
+
+  // Real-time subscription for chat messages
+  useChatRealtime({
+    userId: user?.id,
+    onNewMessage: () => {
+      fetchChatUnread();
+    },
+    onMessageRead: () => {
+      fetchChatUnread();
+    },
+  });
 
   useEffect(() => {
     const fetchData = async () => {

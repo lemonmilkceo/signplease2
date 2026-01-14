@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { MessageCircle, ChevronRight, Plus, User, Image, FileText } from "lucide-react";
 import { CardSlide } from "@/components/ui/card-slide";
@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useChatRealtime } from "@/hooks/useChatRealtime";
 
 interface ChatRoomListProps {
   userType: "employer" | "worker";
@@ -34,25 +35,38 @@ export function ChatRoomList({ userType, onSelectRoom }: ChatRoomListProps) {
   const [workers, setWorkers] = useState<Array<{ id: string; name: string; email: string | null }>>([]);
   const [loadingWorkers, setLoadingWorkers] = useState(false);
 
-  useEffect(() => {
+  const fetchRooms = useCallback(async () => {
     if (!user) return;
-
-    const fetchRooms = async () => {
-      try {
-        const data = userType === "employer"
-          ? await getEmployerChatRooms(user.id)
-          : await getWorkerChatRooms(user.id);
-        setRooms(data);
-      } catch (error) {
-        console.error("Error fetching chat rooms:", error);
-        toast.error("채팅 목록을 불러오는데 실패했습니다");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRooms();
+    
+    try {
+      const data = userType === "employer"
+        ? await getEmployerChatRooms(user.id)
+        : await getWorkerChatRooms(user.id);
+      setRooms(data);
+    } catch (error) {
+      console.error("Error fetching chat rooms:", error);
+      toast.error("채팅 목록을 불러오는데 실패했습니다");
+    } finally {
+      setLoading(false);
+    }
   }, [user, userType]);
+
+  useEffect(() => {
+    fetchRooms();
+  }, [fetchRooms]);
+
+  // Real-time subscription for new messages
+  useChatRealtime({
+    userId: user?.id,
+    onNewMessage: () => {
+      // Refresh room list when new message arrives
+      fetchRooms();
+    },
+    onMessageRead: () => {
+      // Refresh room list when message is read
+      fetchRooms();
+    },
+  });
 
   const handleNewChat = async () => {
     if (!user || userType !== "employer") return;
