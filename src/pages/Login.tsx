@@ -70,7 +70,7 @@ export default function Login() {
       if (!isEmail) {
         // Convert phone to email format
         const phoneNumbers = input.replace(/\D/g, "");
-        email = `${phoneNumbers}@alba.local`;
+        email = `${phoneNumbers}@signplease.com`;
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({

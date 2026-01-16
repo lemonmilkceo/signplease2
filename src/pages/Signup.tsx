@@ -74,7 +74,7 @@ export default function Signup() {
     setIsLoading(true);
     try {
       // Use phone as email if email is not provided
-      const authEmail = formData.email.trim() || `${formData.phone.replace(/\D/g, "")}@alba.local`;
+      const authEmail = formData.email.trim() || `${formData.phone.replace(/\D/g, "")}@signplease.com`;
 
       // Sign up with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({

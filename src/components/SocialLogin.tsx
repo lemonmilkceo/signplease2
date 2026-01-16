@@ -19,6 +19,8 @@ export function SocialLogin() {
         }
     };
 
+    return null; // Temporarily disabled until business registration
+    /*
     return (
         <div className="space-y-3 w-full">
             <div className="relative py-4">
@@ -63,4 +65,5 @@ export function SocialLogin() {
             </div>
         </div>
     );
+    */
 }

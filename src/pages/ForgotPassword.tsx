@@ -40,12 +40,12 @@ export default function ForgotPassword() {
     try {
       const input = inputValue.trim();
       const isEmail = input.includes("@");
-      
+
       let email = input;
       if (!isEmail) {
         // Convert phone to email format
         const phoneNumbers = input.replace(/\D/g, "");
-        email = `${phoneNumbers}@alba.local`;
+        email = `${phoneNumbers}@signplease.com`;
       }
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
