@@ -21,7 +21,7 @@ export default function Login() {
     return localStorage.getItem(REMEMBER_ME_KEY) === "true";
   });
   const [formData, setFormData] = useState({
-    phoneOrEmail: "",
+    phone: "",
     password: "",
   });
 
@@ -36,18 +36,13 @@ export default function Login() {
     return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
   };
 
-  const handlePhoneOrEmailChange = (value: string) => {
-    // If it starts with a number, format as phone
-    if (/^\d/.test(value.replace(/\D/g, ""))) {
-      handleChange("phoneOrEmail", formatPhoneNumber(value));
-    } else {
-      handleChange("phoneOrEmail", value);
-    }
+  const handlePhoneChange = (value: string) => {
+    handleChange("phone", formatPhoneNumber(value));
   };
 
   const validateForm = () => {
-    if (!formData.phoneOrEmail.trim()) {
-      toast.error("핸드폰번호 또는 이메일을 입력해주세요");
+    if (!formData.phone.trim()) {
+      toast.error("핸드폰번호를 입력해주세요");
       return false;
     }
     if (!formData.password) {
@@ -62,19 +57,10 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      // Determine if input is email or phone
-      const input = formData.phoneOrEmail.trim();
-      const isEmail = input.includes("@");
-
-      let email = input;
-      if (!isEmail) {
-        // Convert phone to email format
-        const phoneNumbers = input.replace(/\D/g, "");
-        email = `${phoneNumbers}@signplease.io`;
-      }
+      const phoneNumber = formData.phone.replace(/\D/g, "");
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        phone: phoneNumber,
         password: formData.password,
       });
 
@@ -156,20 +142,19 @@ export default function Login() {
               다시 만나서 반가워요!
             </h2>
             <p className="text-muted-foreground">
-              계정에 로그인해주세요
+              핸드폰 번호로 로그인해주세요
             </p>
           </div>
 
-          {/* Phone or Email */}
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-2">
               <Phone className="w-4 h-4 text-muted-foreground" />
-              핸드폰번호 또는 이메일
+              핸드폰번호
             </Label>
             <Input
-              placeholder="010-1234-5678 또는 example@email.com"
-              value={formData.phoneOrEmail}
-              onChange={(e) => handlePhoneOrEmailChange(e.target.value)}
+              placeholder="010-1234-5678"
+              value={formData.phone}
+              onChange={(e) => handlePhoneChange(e.target.value)}
               onKeyDown={handleKeyDown}
               className="h-12"
             />

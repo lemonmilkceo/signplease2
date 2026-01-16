@@ -32,25 +32,20 @@ export default function ForgotPassword() {
 
   const handleSubmit = async () => {
     if (!inputValue.trim()) {
-      toast.error("핸드폰번호 또는 이메일을 입력해주세요");
+      toast.error("핸드폰번호를 입력해주세요");
       return;
     }
 
     setIsLoading(true);
     try {
-      const input = inputValue.trim();
-      const isEmail = input.includes("@");
+      const phoneNumber = inputValue.trim().replace(/\D/g, "");
 
-      let email = input;
-      if (!isEmail) {
-        // Convert phone to email format
-        const phoneNumbers = input.replace(/\D/g, "");
-        email = `${phoneNumbers}@signplease.io`;
-      }
-
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(`${phoneNumber}@signplease.io`, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
+      // NOTE: Supabase natively uses resetPasswordForEmail. 
+      // For pure phone resets, it usually requires SMS OTP flow.
+      // Keeping the dummy domain for now as a fallback or user will need SMS flow.
 
       if (error) {
         if (error.message.includes("rate limit")) {
@@ -158,25 +153,23 @@ export default function ForgotPassword() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Description */}
           <div className="text-center py-6">
             <h2 className="text-2xl font-bold text-foreground mb-2">
               비밀번호를 잊으셨나요?
             </h2>
             <p className="text-muted-foreground">
-              가입하신 핸드폰번호 또는 이메일을 입력하시면<br />
+              가입하신 핸드폰번호를 입력하시면<br />
               비밀번호 재설정 링크를 보내드립니다
             </p>
           </div>
 
-          {/* Phone or Email */}
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-2">
               <Phone className="w-4 h-4 text-muted-foreground" />
-              핸드폰번호 또는 이메일
+              핸드폰번호
             </Label>
             <Input
-              placeholder="010-1234-5678 또는 example@email.com"
+              placeholder="010-1234-5678"
               value={inputValue}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}

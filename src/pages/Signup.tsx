@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, User, Calendar, Phone, Mail } from "lucide-react";
+import { ArrowLeft, User, Calendar, Phone } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SocialLogin } from "@/components/SocialLogin";
 import { popRedirectPath } from "@/lib/deepLink";
@@ -19,7 +19,6 @@ export default function Signup() {
     gender: "",
     birthDate: "",
     phone: "",
-    email: "",
     password: "",
     confirmPassword: "",
   });
@@ -73,12 +72,9 @@ export default function Signup() {
 
     setIsLoading(true);
     try {
-      // Use phone as email if email is not provided
-      const authEmail = formData.email.trim() || `${formData.phone.replace(/\D/g, "")}@signplease.io`;
-
-      // Sign up with Supabase Auth
+      // Sign up with Supabase Auth using phone
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: authEmail,
+        phone: formData.phone.replace(/\D/g, ""),
         password: formData.password,
         options: {
           data: {
@@ -106,7 +102,7 @@ export default function Signup() {
             gender: formData.gender,
             birth_date: formData.birthDate,
             phone: formData.phone,
-            email: formData.email.trim() || null,
+            email: null,
           })
           .eq("user_id", authData.user.id);
 
@@ -221,20 +217,6 @@ export default function Signup() {
             />
           </div>
 
-          {/* Email (Optional) */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Mail className="w-4 h-4 text-muted-foreground" />
-              이메일 <span className="text-muted-foreground text-xs">(선택)</span>
-            </Label>
-            <Input
-              type="email"
-              placeholder="example@email.com"
-              value={formData.email}
-              onChange={(e) => handleChange("email", e.target.value)}
-              className="h-12"
-            />
-          </div>
 
           {/* Password */}
           <div className="space-y-2">
