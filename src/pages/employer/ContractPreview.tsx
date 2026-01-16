@@ -38,7 +38,7 @@ import { toast } from "sonner";
 import { getContract, signContractAsEmployer, Contract } from "@/lib/contract-api";
 import { getOrCreateChatRoom } from "@/lib/chat-api";
 import { supabase } from "@/integrations/supabase/client";
-import { parseWorkTime, calculateMonthlyWageBreakdown, calculateWeeklyHolidayPay } from "@/lib/wage-utils";
+import { wageService } from "@/domain/wage";
 import { generateContractPDF, ContractPDFData } from "@/lib/pdf-utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ShareContractModal } from "@/components/ShareContractModal";
@@ -52,7 +52,7 @@ export default function ContractPreview() {
   const { id } = useParams();
   const { user } = useAuth();
   const { isDemo, contracts: demoContracts, updateContract: updateDemoContract, contractForm } = useAppStore();
-  
+
   const [contract, setContract] = useState<Contract | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSignatureOpen, setIsSignatureOpen] = useState(false);
@@ -87,6 +87,8 @@ export default function ContractPreview() {
             worker_name: demoContract.workerName,
             hourly_wage: demoContract.hourlyWage,
             start_date: demoContract.startDate,
+            end_date: demoContract.endDate || null,
+            no_end_date: demoContract.noEndDate ?? true,
             work_days: demoContract.workDays,
             work_start_time: demoContract.workStartTime,
             work_end_time: demoContract.workEndTime,
@@ -101,7 +103,13 @@ export default function ContractPreview() {
             updated_at: demoContract.createdAt!,
             signed_at: null,
             folder_id: null,
-          });
+            wage_type: demoContract.wageType || 'hourly',
+            monthly_wage: demoContract.monthlyWage || null,
+            include_weekly_holiday_pay: demoContract.includeWeeklyHolidayPay || false,
+            payment_day: demoContract.paymentDay || null,
+            payment_month: demoContract.paymentMonth || 'current',
+            payment_end_of_month: demoContract.paymentEndOfMonth || false,
+          } as Contract);
           setIsSigned(!!demoContract.employerSignature);
         }
         setIsLoading(false);
@@ -122,6 +130,35 @@ export default function ContractPreview() {
 
     fetchContract();
   }, [id, isDemo, demoContracts]);
+
+  // Realtime subscription for contract updates
+  useEffect(() => {
+    if (!id || isDemo) return;
+
+    const channel = supabase
+      .channel(`contract_status_${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'contracts',
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          setContract(payload.new as Contract);
+          if (payload.new.worker_signature) {
+            toast.info("근로자가 계약서에 서명했습니다!");
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, isDemo]);
 
   // Fetch existing review for this contract
   useEffect(() => {
@@ -144,12 +181,12 @@ export default function ContractPreview() {
         setIsLoadingReviews(false);
         return;
       }
-      
+
       try {
         const { data, error } = await supabase.rpc('get_remaining_legal_reviews', {
           p_user_id: user.id
         });
-        
+
         if (error) throw error;
         setRemainingReviews(data ?? 5);
       } catch (error) {
@@ -207,7 +244,7 @@ export default function ContractPreview() {
         const { data: creditUsed, error: creditError } = await supabase.rpc('use_legal_review', {
           p_user_id: user.id
         });
-        
+
         if (creditError) throw creditError;
         if (!creditUsed) {
           toast.error("검토 크레딧이 부족합니다.");
@@ -215,7 +252,7 @@ export default function ContractPreview() {
           setIsLoadingAdvice(false);
           return;
         }
-        
+
         // 남은 횟수 업데이트
         setRemainingReviews(prev => Math.max(0, prev - 1));
       }
@@ -259,7 +296,7 @@ export default function ContractPreview() {
       });
 
       if (error) throw error;
-      
+
       setLegalAdvice(data);
     } catch (error) {
       console.error("Legal advice error:", error);
@@ -301,7 +338,7 @@ export default function ContractPreview() {
   const formatContractPeriod = () => {
     const startDate = contractForm.startDate || contract?.start_date;
     if (!startDate) return '미정';
-    
+
     if (contractForm.noEndDate) {
       return `${startDate} ~ (종료일 없음)`;
     }
@@ -314,15 +351,15 @@ export default function ContractPreview() {
   // 주휴수당 및 임금 상세 계산
   const wageBreakdown = useMemo(() => {
     if (!contract) return null;
-    
-    const dailyWorkHours = parseWorkTime(
+
+    const dailyWorkHours = wageService.parseWorkTime(
       contract.work_start_time,
       contract.work_end_time,
       contract.break_time_minutes ?? contractForm.breakTimeMinutes ?? 0
     );
     const workDaysPerWeek = contract.work_days_per_week ?? contractForm.workDaysPerWeek ?? contract.work_days?.length ?? 5;
-    
-    return calculateMonthlyWageBreakdown(
+
+    return wageService.calculateMonthlyWageBreakdown(
       contract.hourly_wage,
       workDaysPerWeek,
       dailyWorkHours
@@ -332,15 +369,15 @@ export default function ContractPreview() {
   // 시간당 주휴수당 계산 (주휴수당 미포함 시 사용)
   const weeklyHolidayPayDetail = useMemo(() => {
     if (!contract) return null;
-    
-    const dailyWorkHours = parseWorkTime(
+
+    const dailyWorkHours = wageService.parseWorkTime(
       contract.work_start_time,
       contract.work_end_time,
       contract.break_time_minutes ?? contractForm.breakTimeMinutes ?? 0
     );
     const workDaysPerWeek = contract.work_days_per_week ?? contractForm.workDaysPerWeek ?? contract.work_days?.length ?? 5;
-    
-    return calculateWeeklyHolidayPay(
+
+    return wageService.calculateWeeklyHolidayPay(
       contract.hourly_wage,
       workDaysPerWeek,
       dailyWorkHours
@@ -388,7 +425,7 @@ export default function ContractPreview() {
 
   const handleDownloadPDF = async () => {
     if (!contract) return;
-    
+
     setIsDownloadingPDF(true);
     try {
       await generateContractPDF(getPDFData(), getPDFFilename());
@@ -542,7 +579,7 @@ export default function ContractPreview() {
                     </>
                   )}
                 </p>
-                
+
                 {/* 주휴수당 자동 계산 표시 - 주휴수당 미포함 시에만 별도 계산 */}
                 {wageBreakdown && !contractForm.includeWeeklyHolidayPay && (
                   <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 space-y-2">
@@ -650,7 +687,7 @@ export default function ContractPreview() {
               <p className="text-caption text-blue-600/80 dark:text-blue-400/80">
                 본 계약서에는 아래 명시된 수당이 포함되어 있습니다.
               </p>
-              
+
               {/* 기본급/주휴수당 분리 명시 (주휴수당 미포함 시에만) */}
               {wageBreakdown && !contractForm.includeWeeklyHolidayPay && (
                 <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
@@ -678,14 +715,14 @@ export default function ContractPreview() {
                   <div className="flex justify-between text-caption">
                     <span className="text-blue-600/80 dark:text-blue-400/80">주휴수당 (월)</span>
                     <span className="font-medium text-blue-700 dark:text-blue-300">
-                      {wageBreakdown.isWeeklyHolidayEligible 
+                      {wageBreakdown.isWeeklyHolidayEligible
                         ? `${wageBreakdown.weeklyHolidayPay.toLocaleString()}원`
                         : '해당없음 (주 15시간 미만)'}
                     </span>
                   </div>
                 </div>
               )}
-              
+
               {/* 주휴수당 포함인 경우 안내 */}
               {contractForm.includeWeeklyHolidayPay && (
                 <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
@@ -712,41 +749,41 @@ export default function ContractPreview() {
                   </p>
                 </div>
               )}
-              
+
               {/* 5인 이상 사업장: 포괄임금 수당 세부 내역 (법적 요건 준수) */}
               {(() => {
                 // DB 값 우선, 5인 이상일 때만 추가수당 표시
                 const size = contract.business_size ?? contractForm.businessSize;
                 if (size !== 'over5') return null;
-                
+
                 const overtime = contract.overtime_per_hour ?? contractForm.comprehensiveWageDetails?.overtimePerHour;
                 const holiday = contract.holiday_per_day ?? contractForm.comprehensiveWageDetails?.holidayPerDay;
                 const annual = contract.annual_leave_per_day ?? contractForm.comprehensiveWageDetails?.annualLeavePerDay;
-                
+
                 if (overtime || holiday || annual) {
                   // 일일 근무시간 계산
                   const breakTime = contract.break_time_minutes ?? contractForm.breakTimeMinutes ?? 0;
-                  const dailyHours = parseWorkTime(
+                  const dailyHours = wageService.parseWorkTime(
                     contract.work_start_time || contractForm.workStartTime || '09:00',
                     contract.work_end_time || contractForm.workEndTime || '18:00',
                     breakTime
                   );
-                  
+
                   // 고정 연장근로 시간 계산 (일 8시간 초과분)
                   const workDaysPerWeek = contractForm.workDaysPerWeek || contract.work_days?.length || 5;
                   const dailyOvertimeHours = Math.max(0, dailyHours - 8);
                   const weeklyOvertimeHours = dailyOvertimeHours * workDaysPerWeek;
                   const monthlyOvertimeHours = Math.round(weeklyOvertimeHours * 4.345 * 10) / 10;
-                  
+
                   // 월 고정 연장근로수당
                   const monthlyOvertimePay = overtime ? Math.round(overtime * monthlyOvertimeHours) : 0;
-                  
+
                   return (
                     <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-3">
                       <p className="text-caption font-medium text-blue-700 dark:text-blue-300">
                         포괄임금 수당 내역
                       </p>
-                      
+
                       {/* 연장근로수당 - 포괄임금에 포함 (고정 시간/금액 명시) */}
                       {overtime && monthlyOvertimeHours > 0 && (
                         <div className="p-3 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 space-y-2">
@@ -756,7 +793,7 @@ export default function ContractPreview() {
                             </div>
                             <span className="text-caption font-bold text-blue-800 dark:text-blue-200">연장근로수당</span>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-2 text-caption">
                             <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20">
                               <p className="text-[10px] text-blue-500 dark:text-blue-400 mb-0.5">월 고정 연장근로시간</p>
@@ -767,7 +804,7 @@ export default function ContractPreview() {
                               <p className="font-bold text-blue-800 dark:text-blue-200">{monthlyOvertimePay.toLocaleString()}원</p>
                             </div>
                           </div>
-                          
+
                           <p className="text-[10px] text-blue-600/70 dark:text-blue-400/60">
                             • 시간당 {overtime.toLocaleString()}원 (기본시급의 150%)
                           </p>
@@ -776,7 +813,7 @@ export default function ContractPreview() {
                           </p>
                         </div>
                       )}
-                      
+
                       {/* 휴일근로수당 - 포괄임금 미포함 (발생 시 별도 지급) */}
                       {holiday && (
                         <div className="p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700 space-y-2">
@@ -786,12 +823,12 @@ export default function ContractPreview() {
                             </div>
                             <span className="text-caption font-bold text-amber-800 dark:text-amber-200">휴일근로수당</span>
                           </div>
-                          
+
                           <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20">
                             <p className="text-[10px] text-amber-600 dark:text-amber-400 mb-0.5">휴일근로 시 지급 단가</p>
                             <p className="font-bold text-amber-800 dark:text-amber-200">1일당 {holiday.toLocaleString()}원</p>
                           </div>
-                          
+
                           <p className="text-[10px] text-amber-600/80 dark:text-amber-400/60">
                             ※ 휴일근로는 사전 예측이 불가하여 포괄임금에 미포함
                           </p>
@@ -800,7 +837,7 @@ export default function ContractPreview() {
                           </p>
                         </div>
                       )}
-                      
+
                       {/* 연차유급휴가수당 - 포괄임금 미포함 (사후 정산 원칙) */}
                       {annual && (
                         <div className="p-3 rounded-xl bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 border border-red-200 dark:border-red-700 space-y-2">
@@ -810,26 +847,26 @@ export default function ContractPreview() {
                             </div>
                             <span className="text-caption font-bold text-red-800 dark:text-red-200">연차유급휴가 수당</span>
                           </div>
-                          
+
                           <div className="p-2 rounded-lg bg-white/60 dark:bg-black/20">
                             <p className="text-[10px] text-red-600 dark:text-red-400 mb-0.5">연차 미사용 시 정산 단가</p>
                             <p className="font-bold text-red-800 dark:text-red-200">1일당 {annual.toLocaleString()}원</p>
                           </div>
-                          
+
                           <div className="p-2 rounded-lg bg-red-100/50 dark:bg-red-900/30 border border-red-200/50 dark:border-red-700/50">
                             <p className="text-[10px] font-medium text-red-700 dark:text-red-300 mb-1">⚠️ 법적 안내</p>
                             <p className="text-[10px] text-red-600/80 dark:text-red-400/60">
-                              연차수당의 사전 매수(포괄)는 근로자의 연차 사용권을 침해할 수 있어 법적 위험이 있습니다. 
+                              연차수당의 사전 매수(포괄)는 근로자의 연차 사용권을 침해할 수 있어 법적 위험이 있습니다.
                               연차는 사후 정산이 원칙이므로 미사용 연차에 대해 퇴직 시 또는 연차 사용기간 만료 시 정산합니다.
                             </p>
                           </div>
                         </div>
                       )}
-                      
+
                       {/* 월급 총액 구성 요약 */}
                       <div className="pt-3 border-t border-blue-200/50 dark:border-blue-700/50 space-y-2">
                         <p className="text-caption font-medium text-blue-700 dark:text-blue-300">월급 총액 구성</p>
-                        
+
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-caption">
                             <span className="text-blue-600/80 dark:text-blue-400/80">기본급 + 주휴수당</span>
@@ -837,7 +874,7 @@ export default function ContractPreview() {
                               {wageBreakdown ? wageBreakdown.totalWage.toLocaleString() : '-'}원
                             </span>
                           </div>
-                          
+
                           {overtime && monthlyOvertimeHours > 0 && (
                             <div className="flex justify-between text-caption">
                               <span className="text-blue-600/80 dark:text-blue-400/80">
@@ -848,7 +885,7 @@ export default function ContractPreview() {
                               </span>
                             </div>
                           )}
-                          
+
                           <div className="pt-1.5 border-t border-blue-200/50 dark:border-blue-700/50 flex justify-between text-body">
                             <span className="font-medium text-blue-700 dark:text-blue-300">포괄임금 월 총액</span>
                             <span className="font-bold text-blue-800 dark:text-blue-200">
@@ -856,7 +893,7 @@ export default function ContractPreview() {
                             </span>
                           </div>
                         </div>
-                        
+
                         <p className="text-[10px] text-blue-500/70 dark:text-blue-400/50 mt-2">
                           ※ 휴일근로·연차수당은 발생/정산 시 별도 지급
                         </p>
@@ -896,7 +933,7 @@ export default function ContractPreview() {
                 animate={{ x: ['-100%', '100%'] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
               />
-              
+
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -910,13 +947,13 @@ export default function ContractPreview() {
                       PRO
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-800/50">
                     <Zap className="w-3 h-3 text-amber-600 dark:text-amber-300" />
                     <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">3초</span>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2 ml-12">
                   {isLoadingReviews ? (
                     <span className="text-sm text-muted-foreground">확인 중...</span>
@@ -966,7 +1003,7 @@ export default function ContractPreview() {
                 서명하고 계약서 완성하기
               </Button>
             </motion.div>
-            
+
             {/* 계약서 수정 버튼 */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1094,7 +1131,7 @@ export default function ContractPreview() {
                 </Button>
               </motion.div>
             )}
-            
+
             {/* PDF Preview Button */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -1214,41 +1251,37 @@ export default function ContractPreview() {
                 ) : legalAdvice ? (
                   <div className="space-y-5">
                     {/* Grade Badge */}
-                    <div className={`p-4 rounded-2xl flex items-center gap-3 ${
-                      legalAdvice.grade === '완벽' 
-                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
-                        : legalAdvice.grade === '양호'
+                    <div className={`p-4 rounded-2xl flex items-center gap-3 ${legalAdvice.grade === '완벽'
+                      ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                      : legalAdvice.grade === '양호'
                         ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'
                         : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-                    }`}>
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        legalAdvice.grade === '완벽'
-                          ? 'bg-green-100 dark:bg-green-900/50'
-                          : legalAdvice.grade === '양호'
+                      }`}>
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${legalAdvice.grade === '완벽'
+                        ? 'bg-green-100 dark:bg-green-900/50'
+                        : legalAdvice.grade === '양호'
                           ? 'bg-amber-100 dark:bg-amber-900/50'
                           : 'bg-red-100 dark:bg-red-900/50'
-                      }`}>
+                        }`}>
                         {legalAdvice.grade === '완벽' && <CheckCircle2 className="w-7 h-7 text-green-600 dark:text-green-400" />}
                         {legalAdvice.grade === '양호' && <AlertCircle className="w-7 h-7 text-amber-600 dark:text-amber-400" />}
                         {legalAdvice.grade === '나쁨' && <AlertTriangle className="w-7 h-7 text-red-600 dark:text-red-400" />}
                       </div>
                       <div className="flex-1">
-                        <p className={`text-heading font-bold ${
-                          legalAdvice.grade === '완벽'
-                            ? 'text-green-700 dark:text-green-300'
-                            : legalAdvice.grade === '양호'
+                        <p className={`text-heading font-bold ${legalAdvice.grade === '완벽'
+                          ? 'text-green-700 dark:text-green-300'
+                          : legalAdvice.grade === '양호'
                             ? 'text-amber-700 dark:text-amber-300'
                             : 'text-red-700 dark:text-red-300'
-                        }`}>
+                          }`}>
                           {legalAdvice.grade}
                         </p>
-                        <p className={`text-caption ${
-                          legalAdvice.grade === '완벽'
-                            ? 'text-green-600/80 dark:text-green-400/80'
-                            : legalAdvice.grade === '양호'
+                        <p className={`text-caption ${legalAdvice.grade === '완벽'
+                          ? 'text-green-600/80 dark:text-green-400/80'
+                          : legalAdvice.grade === '양호'
                             ? 'text-amber-600/80 dark:text-amber-400/80'
                             : 'text-red-600/80 dark:text-red-400/80'
-                        }`}>
+                          }`}>
                           {legalAdvice.summary}
                         </p>
                       </div>
@@ -1260,7 +1293,7 @@ export default function ContractPreview() {
                         <p className="text-body font-semibold text-foreground">수정이 필요한 항목</p>
                         <div className="space-y-2">
                           {legalAdvice.issues.map((issue, index) => (
-                            <div 
+                            <div
                               key={index}
                               className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-2"
                             >
@@ -1287,7 +1320,7 @@ export default function ContractPreview() {
 
               {/* Modal Footer */}
               <div className="p-6 border-t border-border space-y-3">
-              {legalAdvice && legalAdvice.grade !== '완벽' && (
+                {legalAdvice && legalAdvice.grade !== '완벽' && (
                   <>
                     {contract && (isDemo || isContractEditable(contract.created_at)) ? (
                       <Button

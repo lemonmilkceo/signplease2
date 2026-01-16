@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Phone, Lock, Eye, EyeOff } from "lucide-react";
+import { SocialLogin } from "@/components/SocialLogin";
+import { popRedirectPath } from "@/lib/deepLink";
 
 const REMEMBER_ME_KEY = "signplease_remember_me";
 
@@ -63,7 +65,7 @@ export default function Login() {
       // Determine if input is email or phone
       const input = formData.phoneOrEmail.trim();
       const isEmail = input.includes("@");
-      
+
       let email = input;
       if (!isEmail) {
         // Convert phone to email format
@@ -88,9 +90,16 @@ export default function Login() {
       if (data.user) {
         // Save remember me preference
         localStorage.setItem(REMEMBER_ME_KEY, rememberMe.toString());
-        
+
         toast.success("로그인되었습니다!");
-        navigate("/select-role");
+
+        // Handle deferred deep link
+        const redirectPath = popRedirectPath();
+        if (redirectPath) {
+          navigate(redirectPath);
+        } else {
+          navigate("/select-role");
+        }
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -238,6 +247,8 @@ export default function Login() {
           >
             {isLoading ? "로그인 중..." : "로그인"}
           </Button>
+
+          <SocialLogin />
 
           <p className="text-center text-sm text-muted-foreground mt-4">
             계정이 없으신가요?{" "}

@@ -14,6 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CONTRACT_EDIT_PERIOD_DAYS } from "@/lib/contract-utils";
 
+declare global {
+  interface Window {
+    Kakao: any;
+  }
+}
+
 interface ShareContractModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -48,7 +54,7 @@ export function ShareContractModal({
 
   const createInvitation = async () => {
     const cleanPhone = phone.replace(/-/g, "");
-    
+
     if (cleanPhone.length < 10) {
       toast({
         title: "연락처 확인",
@@ -95,24 +101,52 @@ export function ShareContractModal({
     const success = await createInvitation();
     if (!success) return;
 
-    // Use KakaoTalk URL Scheme
-    const encodedMessage = encodeURIComponent(shareMessage);
-    const kakaoUrl = `kakaolink://send?text=${encodedMessage}`;
-    
-    // Try to open KakaoTalk
-    window.location.href = kakaoUrl;
+    if (window.Kakao && !window.Kakao.isInitialized()) {
+      const kakaoKey = import.meta.env.VITE_KAKAO_JS_KEY;
+      if (kakaoKey) {
+        window.Kakao.init(kakaoKey);
+      }
+    }
 
-    // Show success toast and navigate to home
+    if (window.Kakao && window.Kakao.isInitialized()) {
+      window.Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: '[근로계약서 서명 요청]',
+          description: `${workerName}님, 근로계약서가 도착했습니다. 내용을 확인하고 서명해 주세요.`,
+          imageUrl: 'https://lovable.dev/opengraph-image-p98pqg.png',
+          link: {
+            mobileWebUrl: contractUrl,
+            webUrl: contractUrl,
+          },
+        },
+        buttons: [
+          {
+            title: '계약서 확인 및 서명',
+            link: {
+              mobileWebUrl: contractUrl,
+              webUrl: contractUrl,
+            },
+          },
+        ],
+      });
+    } else {
+      // Fallback to URL Scheme if SDK is not available or not initialized
+      const encodedMessage = encodeURIComponent(shareMessage);
+      const kakaoUrl = `kakaolink://send?text=${encodedMessage}`;
+      window.location.href = kakaoUrl;
+    }
+
     toast({
-      title: "공유 완료",
-      description: "카카오톡으로 계약서가 공유되었습니다.",
+      title: "공유 시작",
+      description: "카카오톡으로 계약서 공유를 진행합니다.",
     });
-    onOpenChange(false);
-    
-    // Navigate to employer dashboard after a short delay
+
+    // Close modal and navigate to home after a short delay
     setTimeout(() => {
+      onOpenChange(false);
       window.location.href = "/employer";
-    }, 500);
+    }, 2000);
   };
 
   const handleWebShareFallback = async () => {
@@ -157,7 +191,7 @@ export function ShareContractModal({
           description: "계약서가 공유되었습니다.",
         });
         onOpenChange(false);
-        
+
         // Navigate to employer dashboard after a short delay
         setTimeout(() => {
           window.location.href = "/employer";
@@ -174,7 +208,7 @@ export function ShareContractModal({
 
   const handleCopyLink = async () => {
     await createInvitation();
-    
+
     try {
       await navigator.clipboard.writeText(shareMessage);
       setCopied(true);
@@ -261,7 +295,7 @@ export function ShareContractModal({
                 다른 앱
               </Button>
             )}
-            
+
             <Button
               variant="outline"
               onClick={handleCopyLink}

@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, User, Calendar, Phone, Mail } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { SocialLogin } from "@/components/SocialLogin";
+import { popRedirectPath } from "@/lib/deepLink";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -73,7 +75,7 @@ export default function Signup() {
     try {
       // Use phone as email if email is not provided
       const authEmail = formData.email.trim() || `${formData.phone.replace(/\D/g, "")}@alba.local`;
-      
+
       // Sign up with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: authEmail,
@@ -113,7 +115,14 @@ export default function Signup() {
         }
 
         toast.success("회원가입이 완료되었습니다!");
-        navigate("/select-role");
+
+        // Handle deferred deep link
+        const redirectPath = popRedirectPath();
+        if (redirectPath) {
+          navigate(redirectPath);
+        } else {
+          navigate("/select-role");
+        }
       }
     } catch (error) {
       console.error("Signup error:", error);
@@ -268,6 +277,10 @@ export default function Signup() {
         >
           {isLoading ? "가입 중..." : "가입하기"}
         </Button>
+
+        <div className="mt-4">
+          <SocialLogin />
+        </div>
         <p className="text-xs text-center text-muted-foreground mt-4">
           가입 시 <span className="underline">이용약관</span> 및{" "}
           <span className="underline">개인정보처리방침</span>에 동의합니다

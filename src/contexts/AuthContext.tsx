@@ -23,6 +23,7 @@ interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithKakao: () => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (data: Partial<Profile>) => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -47,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Redirect to login page
           window.location.href = '/login';
         }
-        
+
         // Track if user has had a session
         if (session?.user) {
           hadSessionRef.current = true;
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .select('*')
               .eq('user_id', session.user.id)
               .maybeSingle();
-            
+
             if (profileData) {
               setProfile(profileData as Profile);
             }
@@ -81,12 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       // Track if user already has a session on load
       if (session?.user) {
         hadSessionRef.current = true;
       }
-      
+
       if (session?.user) {
         supabase
           .from('profiles')
@@ -111,13 +112,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: 'google' as any,
       options: {
         redirectTo: window.location.origin + '/select-role',
       },
     });
     if (error) throw error;
   };
+
+  const signInWithKakao = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'kakao' as any,
+      options: {
+        redirectTo: window.location.origin + '/select-role',
+      },
+    });
+    if (error) throw error;
+  };
+
 
   const signOut = async () => {
     try {
@@ -167,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         isLoading,
         signInWithGoogle,
+        signInWithKakao,
         signOut,
         updateProfile,
         refreshProfile,

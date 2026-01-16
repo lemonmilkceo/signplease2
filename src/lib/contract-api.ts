@@ -5,6 +5,8 @@ export interface ContractInput {
   workerName: string;
   hourlyWage: number;
   startDate: string;
+  endDate?: string;
+  noEndDate: boolean;
   workDays: string[];
   workDaysPerWeek?: number;
   workStartTime: string;
@@ -18,6 +20,12 @@ export interface ContractInput {
   overtimePerHour?: number;
   holidayPerDay?: number;
   annualLeavePerDay?: number;
+  wageType?: 'hourly' | 'monthly';
+  monthlyWage?: number;
+  includeWeeklyHolidayPay?: boolean;
+  paymentDay?: number;
+  paymentMonth?: 'current' | 'next';
+  paymentEndOfMonth?: boolean;
 }
 
 export interface Contract {
@@ -28,6 +36,8 @@ export interface Contract {
   worker_name: string;
   hourly_wage: number;
   start_date: string;
+  end_date: string | null;
+  no_end_date: boolean;
   work_days: string[];
   work_days_per_week?: number | null;
   work_start_time: string;
@@ -48,6 +58,12 @@ export interface Contract {
   overtime_per_hour?: number | null;
   holiday_per_day?: number | null;
   annual_leave_per_day?: number | null;
+  wage_type: 'hourly' | 'monthly';
+  monthly_wage: number | null;
+  include_weekly_holiday_pay: boolean;
+  payment_day: number | null;
+  payment_month: 'current' | 'next';
+  payment_end_of_month: boolean;
   worker_deleted_at?: string | null;
   employer_deleted_at?: string | null;
 }
@@ -88,6 +104,8 @@ export async function createContract(
       worker_name: data.workerName,
       hourly_wage: data.hourlyWage,
       start_date: data.startDate,
+      end_date: data.endDate || null,
+      no_end_date: data.noEndDate,
       work_days: data.workDays,
       work_days_per_week: data.workDaysPerWeek || null,
       work_start_time: data.workStartTime,
@@ -102,6 +120,12 @@ export async function createContract(
       overtime_per_hour: data.overtimePerHour || null,
       holiday_per_day: data.holidayPerDay || null,
       annual_leave_per_day: data.annualLeavePerDay || null,
+      wage_type: data.wageType || 'hourly',
+      monthly_wage: data.monthlyWage || null,
+      include_weekly_holiday_pay: data.includeWeeklyHolidayPay || false,
+      payment_day: data.paymentDay || null,
+      payment_month: data.paymentMonth || 'current',
+      payment_end_of_month: data.paymentEndOfMonth || false,
     })
     .select()
     .single();

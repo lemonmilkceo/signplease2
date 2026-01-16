@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { generateContractContent, createContract, getContract, updateContract as updateContractApi, ContractInput, Contract } from "@/lib/contract-api";
 import { toast } from "sonner";
 import { AllowanceCalculator } from "@/components/allowance-calculator";
-import { parseWorkTime } from "@/lib/wage-utils";
+import { wageService } from "@/domain/wage";
 import { useKakaoAddress } from "@/hooks/useKakaoAddress";
 import { getRemainingCredits, useCredit } from "@/lib/credits-api";
 import { NoCreditModal } from "@/components/NoCreditModal";
@@ -32,7 +32,7 @@ export default function CreateContract() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editContractId = searchParams.get('edit');
-  
+
   const { user, profile, isLoading: authLoading } = useAuth();
   const { isDemo, contractForm, setContractForm, addContract, updateContract: updateDemoContract, contracts: demoContracts, editingContractId, setEditingContractId, resetContractForm } = useAppStore();
   const { openAddressSearch, isScriptLoaded } = useKakaoAddress();
@@ -59,10 +59,10 @@ export default function CreateContract() {
         setEditingContractId(null);
         return;
       }
-      
+
       setIsLoadingContract(true);
       setEditingContractId(editContractId);
-      
+
       try {
         if (isDemo) {
           // Demo mode - find from local state
@@ -103,9 +103,8 @@ export default function CreateContract() {
               workerName: contract.worker_name,
               hourlyWage: contract.hourly_wage,
               startDate: contract.start_date,
-              // endDate와 noEndDate 복원 (DB에 저장 시 로직 필요)
-              endDate: undefined, // DB에 end_date 컬럼 추가 후 연동 필요
-              noEndDate: true, // 기본값: 정함이 없음
+              endDate: contract.end_date || undefined,
+              noEndDate: contract.no_end_date,
               workDays: contract.work_days,
               workDaysPerWeek: contract.work_days_per_week || contract.work_days?.length,
               workStartTime: contract.work_start_time,
@@ -115,18 +114,18 @@ export default function CreateContract() {
               businessName: contract.business_name || undefined,
               businessSize: (contract.business_size as BusinessSize) || 'under5',
               jobDescription: contract.job_description || undefined,
-              wageType: 'hourly',
-              // 포괄임금 관련 필드
-              isComprehensiveWage: true, // DB에 저장된 계약서는 포괄임금계약서
+              wageType: (contract.wage_type as WageType) || 'hourly',
+              monthlyWage: contract.monthly_wage || 0,
+              includeWeeklyHolidayPay: contract.include_weekly_holiday_pay,
+              isComprehensiveWage: !!(contract.overtime_per_hour || contract.holiday_per_day || contract.annual_leave_per_day),
               comprehensiveWageDetails: {
                 overtimePerHour: contract.overtime_per_hour ?? undefined,
                 holidayPerDay: contract.holiday_per_day ?? undefined,
                 annualLeavePerDay: contract.annual_leave_per_day ?? undefined,
               },
-              // 급여일 관련 필드 복원
-              paymentDay: 10, // 기본값 (DB에 컬럼 추가 후 연동 필요)
-              paymentMonth: 'next', // 기본값
-              paymentEndOfMonth: false,
+              paymentDay: contract.payment_day ?? 10,
+              paymentMonth: (contract.payment_month as 'current' | 'next') || 'next',
+              paymentEndOfMonth: contract.payment_end_of_month || false,
             });
           }
         }
@@ -138,7 +137,7 @@ export default function CreateContract() {
         setIsLoadingContract(false);
       }
     };
-    
+
     loadContractForEdit();
   }, [editContractId, isDemo]);
 
@@ -167,12 +166,12 @@ export default function CreateContract() {
   useEffect(() => {
     if (currentStep === 10 && contractForm.businessSize === 'over5') {
       const hourlyWage = contractForm.hourlyWage || MINIMUM_WAGE_2026;
-      const dailyWorkHours = parseWorkTime(
+      const dailyWorkHours = wageService.parseWorkTime(
         contractForm.workStartTime || '09:00',
         contractForm.workEndTime || '18:00',
         contractForm.breakTimeMinutes || 0
       );
-      
+
       // 시급이나 근무시간이 변경되면 항상 재계산
       setContractForm({
         comprehensiveWageDetails: {
@@ -213,19 +212,19 @@ export default function CreateContract() {
 
   const handleGenerateContract = async () => {
     const isEditing = !!editingContractId;
-    
+
     // Demo mode에서는 회원가입 유도 모달 표시
     if (isDemo) {
       setShowSignupModal(true);
       return;
     }
-    
+
     // Check credits before generating (skip when editing)
     if (user && !isEditing) {
       try {
         const credits = await getRemainingCredits(user.id);
         setRemainingCredits(credits);
-        
+
         if (credits <= 0) {
           setShowNoCreditModal(true);
           return;
@@ -242,6 +241,8 @@ export default function CreateContract() {
       workerName: contractForm.workerName || '',
       hourlyWage: contractForm.hourlyWage || MINIMUM_WAGE_2026,
       startDate: contractForm.startDate || new Date().toISOString().split('T')[0],
+      endDate: contractForm.endDate,
+      noEndDate: contractForm.noEndDate ?? true,
       workDays: contractForm.workDays || [],
       workDaysPerWeek: contractForm.workDaysPerWeek,
       workStartTime: contractForm.workStartTime || '09:00',
@@ -254,6 +255,12 @@ export default function CreateContract() {
       overtimePerHour: contractForm.comprehensiveWageDetails?.overtimePerHour,
       holidayPerDay: contractForm.comprehensiveWageDetails?.holidayPerDay,
       annualLeavePerDay: contractForm.comprehensiveWageDetails?.annualLeavePerDay,
+      wageType: contractForm.wageType,
+      monthlyWage: contractForm.monthlyWage,
+      includeWeeklyHolidayPay: contractForm.includeWeeklyHolidayPay,
+      paymentDay: contractForm.paymentDay,
+      paymentMonth: contractForm.paymentMonth,
+      paymentEndOfMonth: contractForm.paymentEndOfMonth,
     };
 
     try {
@@ -265,15 +272,29 @@ export default function CreateContract() {
             worker_name: contractData.workerName,
             hourly_wage: contractData.hourlyWage,
             start_date: contractData.startDate,
+            end_date: contractData.endDate || null,
+            no_end_date: contractData.noEndDate,
             work_days: contractData.workDays,
+            work_days_per_week: contractData.workDaysPerWeek || null,
             work_start_time: contractData.workStartTime,
             work_end_time: contractData.workEndTime,
             work_location: contractData.workLocation,
             business_name: contractData.businessName || null,
             job_description: contractData.jobDescription || null,
             contract_content: contractContent,
+            break_time_minutes: contractData.breakTimeMinutes || 0,
+            business_size: contractData.businessSize || 'under5',
+            overtime_per_hour: contractData.overtimePerHour || null,
+            holiday_per_day: contractData.holidayPerDay || null,
+            annual_leave_per_day: contractData.annualLeavePerDay || null,
+            wage_type: contractData.wageType || 'hourly',
+            monthly_wage: contractData.monthlyWage || null,
+            include_weekly_holiday_pay: contractData.includeWeeklyHolidayPay || false,
+            payment_day: contractData.paymentDay || null,
+            payment_month: contractData.paymentMonth || 'current',
+            payment_end_of_month: contractData.paymentEndOfMonth || false,
           });
-          
+
           toast.success("계약서가 수정되었습니다!");
           resetContractForm();
           setEditingContractId(null);
@@ -289,10 +310,10 @@ export default function CreateContract() {
 
           const contractContent = await generateContractContent(contractData);
           const newContract = await createContract(contractData, contractContent, user.id);
-          
+
           const newCredits = await getRemainingCredits(user.id);
           setRemainingCredits(newCredits);
-          
+
           resetContractForm();
           navigate(`/employer/preview/${newContract.id}`);
         }
@@ -314,8 +335,8 @@ export default function CreateContract() {
       case 3:
         if (!contractForm.wageType) return false;
         if (contractForm.wageType === 'hourly') {
-          const minWage = contractForm.includeWeeklyHolidayPay 
-            ? MINIMUM_WAGE_WITH_HOLIDAY_2026 
+          const minWage = contractForm.includeWeeklyHolidayPay
+            ? MINIMUM_WAGE_WITH_HOLIDAY_2026
             : MINIMUM_WAGE_2026;
           return (contractForm.hourlyWage || 0) >= minWage;
         } else {
@@ -382,7 +403,7 @@ export default function CreateContract() {
       {/* Header */}
       <div className="px-6 pt-6 pb-4">
         {isEditing && (
-          <motion.div 
+          <motion.div
             className="mb-3 px-3 py-2 rounded-xl bg-primary/10 border border-primary/20"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -416,45 +437,39 @@ export default function CreateContract() {
               />
               <div className="space-y-4">
                 <motion.button
-                  className={`w-full p-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${
-                    contractForm.businessSize === 'under5'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-muted/50 hover:bg-muted'
-                  }`}
+                  className={`w-full p-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${contractForm.businessSize === 'under5'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-muted/50 hover:bg-muted'
+                    }`}
                   onClick={() => setContractForm({ businessSize: 'under5' })}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                    contractForm.businessSize === 'under5' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${contractForm.businessSize === 'under5' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    }`}>
                     <Building2 className="w-7 h-7" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className={`text-body-lg font-bold ${
-                      contractForm.businessSize === 'under5' ? 'text-primary' : 'text-foreground'
-                    }`}>5명 미만</p>
+                    <p className={`text-body-lg font-bold ${contractForm.businessSize === 'under5' ? 'text-primary' : 'text-foreground'
+                      }`}>5명 미만</p>
                     <p className="text-body text-muted-foreground">소규모 가게 (1~4명)</p>
                   </div>
                 </motion.button>
-                
+
                 <motion.button
-                  className={`w-full p-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${
-                    contractForm.businessSize === 'over5'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-muted/50 hover:bg-muted'
-                  }`}
+                  className={`w-full p-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${contractForm.businessSize === 'over5'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-muted/50 hover:bg-muted'
+                    }`}
                   onClick={() => setContractForm({ businessSize: 'over5' })}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                    contractForm.businessSize === 'over5' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${contractForm.businessSize === 'over5' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    }`}>
                     <Users className="w-7 h-7" />
                   </div>
                   <div className="flex-1 text-left">
-                    <p className={`text-body-lg font-bold ${
-                      contractForm.businessSize === 'over5' ? 'text-primary' : 'text-foreground'
-                    }`}>5명 이상</p>
+                    <p className={`text-body-lg font-bold ${contractForm.businessSize === 'over5' ? 'text-primary' : 'text-foreground'
+                      }`}>5명 이상</p>
                     <p className="text-body text-muted-foreground">중소규모 이상 (5명~)</p>
                   </div>
                 </motion.button>
@@ -467,7 +482,7 @@ export default function CreateContract() {
                   >
                     <p className="text-body text-amber-700 dark:text-amber-300">
                       <Info className="w-5 h-5 inline mr-2" />
-                      <strong>5명 이상이면</strong> 수당을 더 자세히 적어야 해요<br/>
+                      <strong>5명 이상이면</strong> 수당을 더 자세히 적어야 해요<br />
                       <span className="text-sm mt-1 block text-amber-600/80 dark:text-amber-400/80">걱정마세요, 제가 자동으로 계산해드릴게요!</span>
                     </p>
                   </motion.div>
@@ -514,45 +529,39 @@ export default function CreateContract() {
                 question="급여 형태를 선택해주세요"
                 className="mb-8"
               />
-              
+
               {/* Wage Type Selection */}
               <div className="flex gap-3 mb-6">
                 <motion.button
-                  className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
-                    contractForm.wageType === 'hourly'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-muted/50 hover:bg-muted'
-                  }`}
+                  className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${contractForm.wageType === 'hourly'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-muted/50 hover:bg-muted'
+                    }`}
                   onClick={() => setContractForm({ wageType: 'hourly', monthlyWage: undefined })}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    contractForm.wageType === 'hourly' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${contractForm.wageType === 'hourly' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    }`}>
                     <Wallet className="w-6 h-6" />
                   </div>
-                  <span className={`text-body font-semibold ${
-                    contractForm.wageType === 'hourly' ? 'text-primary' : 'text-muted-foreground'
-                  }`}>시급</span>
+                  <span className={`text-body font-semibold ${contractForm.wageType === 'hourly' ? 'text-primary' : 'text-muted-foreground'
+                    }`}>시급</span>
                 </motion.button>
-                
+
                 <motion.button
-                  className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${
-                    contractForm.wageType === 'monthly'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border bg-muted/50 hover:bg-muted'
-                  }`}
+                  className={`flex-1 p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${contractForm.wageType === 'monthly'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-muted/50 hover:bg-muted'
+                    }`}
                   onClick={() => setContractForm({ wageType: 'monthly', hourlyWage: 0 })}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    contractForm.wageType === 'monthly' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                  }`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${contractForm.wageType === 'monthly' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    }`}>
                     <Banknote className="w-6 h-6" />
                   </div>
-                  <span className={`text-body font-semibold ${
-                    contractForm.wageType === 'monthly' ? 'text-primary' : 'text-muted-foreground'
-                  }`}>월급</span>
+                  <span className={`text-body font-semibold ${contractForm.wageType === 'monthly' ? 'text-primary' : 'text-muted-foreground'
+                    }`}>월급</span>
                 </motion.button>
               </div>
 
@@ -582,21 +591,21 @@ export default function CreateContract() {
                           원
                         </span>
                       </div>
-                      
+
                       {/* 주휴수당 포함 체크박스 */}
                       <div className="mt-5 p-4 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                         <div className="flex items-start gap-3">
                           <Checkbox
                             id="weeklyHolidayPay"
                             checked={contractForm.includeWeeklyHolidayPay || false}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               setContractForm({ includeWeeklyHolidayPay: checked === true })
                             }
                             className="mt-1"
                           />
                           <div className="flex-1">
-                            <label 
-                              htmlFor="weeklyHolidayPay" 
+                            <label
+                              htmlFor="weeklyHolidayPay"
                               className="text-body font-semibold text-blue-700 dark:text-blue-300 cursor-pointer"
                             >
                               위 시급에 주휴수당이 포함되어 있다면 체크해주세요
@@ -616,23 +625,23 @@ export default function CreateContract() {
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* 최저시급 미만 경고 */}
                       {(contractForm.hourlyWage || 0) > 0 && (
-                        contractForm.includeWeeklyHolidayPay 
-                          ? contractForm.hourlyWage! < MINIMUM_WAGE_WITH_HOLIDAY_2026 
+                        contractForm.includeWeeklyHolidayPay
+                          ? contractForm.hourlyWage! < MINIMUM_WAGE_WITH_HOLIDAY_2026
                           : contractForm.hourlyWage! < MINIMUM_WAGE_2026
                       ) && (
-                        <motion.p
-                          className="mt-3 text-caption text-destructive"
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                        >
-                          {contractForm.includeWeeklyHolidayPay 
-                            ? `주휴수당 포함 시 최저시급(${MINIMUM_WAGE_WITH_HOLIDAY_2026.toLocaleString()}원) 이상으로 설정해주세요`
-                            : '최저시급 이상으로 설정해주세요'}
-                        </motion.p>
-                      )}
+                          <motion.p
+                            className="mt-3 text-caption text-destructive"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                          >
+                            {contractForm.includeWeeklyHolidayPay
+                              ? `주휴수당 포함 시 최저시급(${MINIMUM_WAGE_WITH_HOLIDAY_2026.toLocaleString()}원) 이상으로 설정해주세요`
+                              : '최저시급 이상으로 설정해주세요'}
+                          </motion.p>
+                        )}
                     </>
                   ) : (
                     <>
@@ -684,27 +693,27 @@ export default function CreateContract() {
                     />
                   </div>
                 </div>
-                
+
                 {/* 계약종료일 없음 체크박스 */}
                 <div className="flex items-center gap-3 py-2">
                   <Checkbox
                     id="noEndDate"
                     checked={contractForm.noEndDate || false}
-                    onCheckedChange={(checked) => 
-                      setContractForm({ 
+                    onCheckedChange={(checked) =>
+                      setContractForm({
                         noEndDate: checked === true,
-                        endDate: checked === true ? undefined : contractForm.endDate 
+                        endDate: checked === true ? undefined : contractForm.endDate
                       })
                     }
                   />
-                  <label 
-                    htmlFor="noEndDate" 
+                  <label
+                    htmlFor="noEndDate"
                     className="text-body font-medium text-foreground cursor-pointer"
                   >
                     계약종료일 없음
                   </label>
                 </div>
-                
+
                 {/* 계약종료일 입력 */}
                 {!contractForm.noEndDate && (
                   <motion.div
@@ -736,15 +745,14 @@ export default function CreateContract() {
           {currentStep === 5 && (
             <StepContainer key="step-5" stepKey={5}>
               <StepQuestion question="근무일을 어떻게 정할까요?" className="mb-6" />
-              
+
               {/* 선택 방식 토글 */}
               <div className="flex gap-2 mb-6">
                 <button
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all ${
-                    !contractForm.workDays?.length || contractForm.workDaysPerWeek
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all ${!contractForm.workDays?.length || contractForm.workDaysPerWeek
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
+                    }`}
                   onClick={() => {
                     setContractForm({ workDays: [], workDaysPerWeek: contractForm.workDaysPerWeek || 5 });
                   }}
@@ -752,11 +760,10 @@ export default function CreateContract() {
                   주 N일
                 </button>
                 <button
-                  className={`flex-1 py-3 rounded-xl font-medium transition-all ${
-                    contractForm.workDays?.length && !contractForm.workDaysPerWeek
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
+                  className={`flex-1 py-3 rounded-xl font-medium transition-all ${contractForm.workDays?.length && !contractForm.workDaysPerWeek
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
+                    }`}
                   onClick={() => {
                     setContractForm({ workDaysPerWeek: undefined, workDays: contractForm.workDays?.length ? contractForm.workDays : ['월', '화', '수', '목', '금'] });
                   }}
@@ -790,11 +797,10 @@ export default function CreateContract() {
                     {['월', '화', '수', '목', '금', '토', '일'].map((day) => (
                       <motion.button
                         key={day}
-                        className={`h-12 rounded-xl text-body font-semibold transition-all ${
-                          contractForm.workDays?.includes(day)
-                            ? 'bg-primary text-primary-foreground shadow-button'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                        }`}
+                        className={`h-12 rounded-xl text-body font-semibold transition-all ${contractForm.workDays?.includes(day)
+                          ? 'bg-primary text-primary-foreground shadow-button'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          }`}
                         onClick={() => {
                           const currentDays = contractForm.workDays || [];
                           if (currentDays.includes(day)) {
@@ -862,7 +868,7 @@ export default function CreateContract() {
                   </motion.button>
                 ))}
               </div>
-              
+
               {/* 직접 입력 */}
               <div className="space-y-2">
                 <p className="text-caption text-muted-foreground">직접 입력</p>
@@ -893,12 +899,12 @@ export default function CreateContract() {
               <StepQuestion question="근무 장소는 어디인가요?" className="mb-8" />
               <div className="space-y-4">
                 <div className="relative">
-                  <Input 
-                    variant="toss" 
-                    inputSize="xl" 
-                    placeholder="근무지 주소를 입력해주세요" 
-                    value={contractForm.workLocation || ''} 
-                    onChange={(e) => setContractForm({ workLocation: e.target.value })} 
+                  <Input
+                    variant="toss"
+                    inputSize="xl"
+                    placeholder="근무지 주소를 입력해주세요"
+                    value={contractForm.workLocation || ''}
+                    onChange={(e) => setContractForm({ workLocation: e.target.value })}
                     onClick={() => {
                       if (isScriptLoaded) {
                         openAddressSearch((address) => {
@@ -976,7 +982,7 @@ export default function CreateContract() {
                   </button>
                 </motion.div>
               )}
-              
+
               {/* 업무 내용 (공통) */}
               <StepQuestion question="주요 업무 내용을 알려주세요" description="선택사항이에요" className="mb-6" />
               <div className="flex flex-wrap gap-2 mb-6">
@@ -988,21 +994,21 @@ export default function CreateContract() {
                 })}
               </div>
               <textarea className="w-full h-24 p-4 rounded-2xl border-2 border-border bg-background text-body focus:border-primary focus:outline-none transition-colors resize-none" placeholder="추가로 입력하고 싶은 업무 내용을 적어주세요" value={contractForm.jobDescription || ''} onChange={(e) => setContractForm({ jobDescription: e.target.value })} />
-              
+
               {/* 수당 안내 (5인 이상만 표시 - 5인 미만은 추가수당 의무 없음) */}
               {contractForm.businessSize === 'over5' && (() => {
                 const hourlyWage = contractForm.hourlyWage || MINIMUM_WAGE_2026;
-                const dailyWorkHours = parseWorkTime(
+                const dailyWorkHours = wageService.parseWorkTime(
                   contractForm.workStartTime || '09:00',
                   contractForm.workEndTime || '18:00',
                   contractForm.breakTimeMinutes || 0
                 );
-                
+
                 // 단위당 수당 계산
                 const overtimePerHour = Math.round(hourlyWage * 1.5);
                 const holidayPerDay = Math.round(hourlyWage * 1.5 * dailyWorkHours);
                 const annualLeavePerDay = Math.round(hourlyWage * dailyWorkHours);
-                
+
                 return (
                   <div className="mt-6 space-y-4">
                     {/* 쉬운 설명 카드 */}
@@ -1013,7 +1019,7 @@ export default function CreateContract() {
                           💰 추가로 일하면 이만큼 더 줘야 해요
                         </p>
                       </div>
-                      
+
                       {/* 단위당 수당 - 큰 글씨로 */}
                       <div className="space-y-3">
                         <div className="p-4 rounded-xl bg-white/70 dark:bg-black/20 border border-blue-100 dark:border-blue-700">
@@ -1025,7 +1031,7 @@ export default function CreateContract() {
                             <p className="text-body-lg font-bold text-blue-600 dark:text-blue-400">+{overtimePerHour.toLocaleString()}원</p>
                           </div>
                         </div>
-                        
+
                         <div className="p-4 rounded-xl bg-white/70 dark:bg-black/20 border border-blue-100 dark:border-blue-700">
                           <div className="flex justify-between items-center">
                             <div>
@@ -1035,7 +1041,7 @@ export default function CreateContract() {
                             <p className="text-body-lg font-bold text-blue-600 dark:text-blue-400">+{holidayPerDay.toLocaleString()}원</p>
                           </div>
                         </div>
-                        
+
                         <div className="p-4 rounded-xl bg-white/70 dark:bg-black/20 border border-blue-100 dark:border-blue-700">
                           <div className="flex justify-between items-center">
                             <div>
@@ -1047,7 +1053,7 @@ export default function CreateContract() {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* 5인 이상 사업장: 수당 직접 입력 */}
                     <div className="p-5 rounded-2xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800">
                       <p className="text-body font-bold text-violet-700 dark:text-violet-300 mb-2">
@@ -1080,7 +1086,7 @@ export default function CreateContract() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
                       <p className="text-body text-amber-700 dark:text-amber-300 font-semibold mb-1">
                         💡 알아두세요
@@ -1092,7 +1098,7 @@ export default function CreateContract() {
                   </div>
                 );
               })()}
-              
+
               {/* 5인 미만 사업장 안내 */}
               {contractForm.businessSize === 'under5' && (
                 <div className="mt-6 p-4 rounded-2xl bg-muted border border-border">
@@ -1148,17 +1154,15 @@ export default function CreateContract() {
               <motion.button
                 key={type}
                 onClick={() => handleBusinessTypeSelect(type)}
-                className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${
-                  contractForm.businessType === type
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-card hover:bg-muted/50'
-                }`}
+                className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${contractForm.businessType === type
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border bg-card hover:bg-muted/50'
+                  }`}
                 whileTap={{ scale: 0.98 }}
               >
                 <span className="text-2xl">{info.emoji}</span>
-                <span className={`text-body font-medium ${
-                  contractForm.businessType === type ? 'text-primary' : 'text-foreground'
-                }`}>
+                <span className={`text-body font-medium ${contractForm.businessType === type ? 'text-primary' : 'text-foreground'
+                  }`}>
                   {info.label}
                 </span>
               </motion.button>

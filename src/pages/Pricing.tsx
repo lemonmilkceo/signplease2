@@ -1,29 +1,39 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  ArrowLeft, 
-  Check, 
-  Sparkles, 
-  Gift, 
-  Zap, 
-  Building2, 
+import {
+  ArrowLeft,
+  Check,
+  Sparkles,
+  Gift,
+  Zap,
+  Building2,
   Crown,
   Coins,
   Scale,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react";
 import { PRICING_PLANS, getRemainingCredits } from "@/lib/credits-api";
 import { toast } from "sonner";
+
+declare global {
+  interface Window {
+    loadPaymentWidget: (clientKey: string, customerKey: string) => any;
+  }
+}
+
+const TOSS_CLIENT_KEY = "test_ck_D5mOwv17VdzpW9K4v03M34LMxEze"; // 테스트 키
 
 export default function Pricing() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const [remainingCredits, setRemainingCredits] = useState<number>(5);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<typeof PRICING_PLANS[0] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [paymentWidget, setPaymentWidget] = useState<any>(null);
 
   useEffect(() => {
     const fetchCredits = async () => {
@@ -35,19 +45,53 @@ export default function Pricing() {
     fetchCredits();
   }, [user]);
 
-  const handlePurchase = async (planId: string) => {
+  // 토스페이먼츠 위젯 초기화
+  useEffect(() => {
+    if (user && window.loadPaymentWidget && !paymentWidget) {
+      const widget = window.loadPaymentWidget(TOSS_CLIENT_KEY, user.id);
+      setPaymentWidget(widget);
+    }
+  }, [user, paymentWidget]);
+
+  // 선택된 플랜이 변경될 때마다 결제 금액 업데이트
+  useEffect(() => {
+    if (paymentWidget && selectedPlan) {
+      paymentWidget.renderPaymentMethods("#payment-method", { value: selectedPlan.price });
+      paymentWidget.renderAgreement("#agreement");
+    }
+  }, [paymentWidget, selectedPlan]);
+
+  const handlePurchase = async (plan: typeof PRICING_PLANS[0]) => {
+    if (!user) {
+      toast.error("로그인이 필요합니다.");
+      navigate("/login");
+      return;
+    }
+
+    setSelectedPlan(plan);
+    // 스크롤을 결제 섹션으로 이동
+    setTimeout(() => {
+      document.getElementById("payment-section")?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const executePayment = async () => {
+    if (!paymentWidget || !selectedPlan) return;
+
     setIsLoading(true);
-    setSelectedPlan(planId);
-    
-    // 실제 결제 연동 전 - 시뮬레이션
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast.info("결제 기능은 곧 출시됩니다!", {
-      description: "현재 무료 크레딧으로 서비스를 체험해 보세요."
-    });
-    
-    setIsLoading(false);
-    setSelectedPlan(null);
+    try {
+      await paymentWidget.requestPayment({
+        orderId: `order_${Math.random().toString(36).slice(2, 11)}`,
+        orderName: `[싸인해주세요] ${selectedPlan.name} 충전`,
+        customerName: profile?.name || user?.email?.split('@')[0],
+        successUrl: `${window.location.origin}/payment/success`,
+        failUrl: `${window.location.origin}/payment/fail`,
+      });
+    } catch (error) {
+      console.error("Payment request error:", error);
+      toast.error("결제 요청 중 오류가 발생했습니다.");
+      setIsLoading(false);
+    }
   };
 
   const getPlanIcon = (planId: string) => {
@@ -124,29 +168,6 @@ export default function Pricing() {
           </div>
         </motion.div>
 
-        {/* Free Tier Info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="bg-success/5 border border-success/20 rounded-2xl p-4 mb-8"
-        >
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-success/20 flex items-center justify-center flex-shrink-0">
-              <Gift className="w-4 h-4 text-success" />
-            </div>
-            <div>
-              <p className="font-medium text-foreground mb-1">
-                🎉 첫 가입 혜택
-              </p>
-              <p className="text-sm text-muted-foreground">
-                신규 가입 시 <span className="font-semibold text-success">5건 무료</span>로 시작하세요!
-                <br />결제 없이 바로 계약서를 작성할 수 있습니다.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
         {/* Pricing Cards */}
         <div className="space-y-4">
           {PRICING_PLANS.map((plan, index) => (
@@ -157,8 +178,8 @@ export default function Pricing() {
               transition={{ delay: 0.2 + index * 0.05 }}
               className={`
                 relative rounded-2xl border-2 p-5 transition-all
-                ${plan.popular 
-                  ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10' 
+                ${plan.popular
+                  ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
                   : 'border-border bg-card hover:border-primary/50'
                 }
               `}
@@ -200,22 +221,59 @@ export default function Pricing() {
                   </span>
                 </div>
                 <Button
-                  onClick={() => handlePurchase(plan.id)}
-                  disabled={isLoading}
+                  onClick={() => handlePurchase(plan)}
                   variant={plan.popular ? "toss" : "outline"}
                   size="sm"
                   className="min-w-[80px]"
                 >
-                  {isLoading && selectedPlan === plan.id ? (
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    '구매하기'
-                  )}
+                  선택하기
                 </Button>
               </div>
             </motion.div>
           ))}
         </div>
+
+        {/* Payment Widget Section */}
+        {selectedPlan && (
+          <motion.div
+            id="payment-section"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="mt-8 pt-8 border-t border-border"
+          >
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-foreground mb-1">결제하기</h3>
+              <p className="text-sm text-muted-foreground">
+                선택한 상품: <span className="font-bold text-primary">{selectedPlan.name}</span>
+              </p>
+            </div>
+
+            <div id="payment-method" className="mb-4" />
+            <div id="agreement" className="mb-6" />
+
+            <Button
+              onClick={executePayment}
+              disabled={isLoading}
+              variant="toss"
+              size="full"
+              className="h-14 text-lg font-bold"
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              ) : null}
+              {selectedPlan.price.toLocaleString()}원 결제하기
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="full"
+              onClick={() => setSelectedPlan(null)}
+              className="mt-2 text-muted-foreground"
+            >
+              취소
+            </Button>
+          </motion.div>
+        )}
 
         {/* Features */}
         <motion.div
@@ -261,16 +319,16 @@ export default function Pricing() {
                 작성한 계약서의 법적 문제점을 AI가 분석해 드립니다
               </p>
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => navigate('/legal-review-pricing')}
                   className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
                 >
                   노무사 요금제
                 </Button>
-                <Button 
-                  variant="default" 
+                <Button
+                  variant="default"
                   size="sm"
                   onClick={() => navigate('/bundle-pricing')}
                   className="bg-gradient-to-r from-primary to-emerald-500 hover:from-primary/90 hover:to-emerald-500/90"
@@ -281,25 +339,6 @@ export default function Pricing() {
               </div>
             </div>
           </div>
-        </motion.div>
-
-        {/* Contact for Enterprise */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mt-8 p-5 rounded-2xl bg-muted/50 text-center"
-        >
-          <Building2 className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-          <h4 className="font-semibold text-foreground mb-1">
-            대량 구매가 필요하신가요?
-          </h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            50건 이상 구매 시 추가 할인을 제공합니다
-          </p>
-          <Button variant="outline" size="sm">
-            문의하기
-          </Button>
         </motion.div>
       </div>
     </div>

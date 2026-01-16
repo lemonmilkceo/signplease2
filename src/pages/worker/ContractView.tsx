@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { getContract, signContractAsWorker, explainTerm, Contract } from "@/lib/contract-api";
 import { SignatureCanvas } from "@/components/ui/signature-canvas";
-import { parseWorkTime, calculateMonthlyWageBreakdown } from "@/lib/wage-utils";
+import { wageService } from "@/domain/wage";
 import { generateContractPDF, ContractPDFData } from "@/lib/pdf-utils";
 import { PDFPreviewModal } from "@/components/PDFPreviewModal";
+import { saveRedirectPath } from "@/lib/deepLink";
 import {
   ArrowLeft,
   Calendar,
@@ -61,18 +63,51 @@ export default function WorkerContractView() {
     fetchContract();
   }, [id]);
 
+  // Realtime subscription for contract updates
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`worker_contract_status_${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'contracts',
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          console.log('Realtime update:', payload);
+          setContract(payload.new as Contract);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
+  // Save redirect path if not logged in
+  useEffect(() => {
+    if (!user && id) {
+      saveRedirectPath(window.location.pathname);
+    }
+  }, [user, id]);
+
   // 주휴수당 및 임금 상세 계산
   const wageBreakdown = useMemo(() => {
     if (!contract) return null;
-    
-    const dailyWorkHours = parseWorkTime(
+
+    const dailyWorkHours = wageService.parseWorkTime(
       contract.work_start_time,
       contract.work_end_time,
       contract.break_time_minutes ?? 0
     );
     const workDaysPerWeek = contract.work_days_per_week ?? contract.work_days?.length ?? 5;
-    
-    return calculateMonthlyWageBreakdown(
+
+    return wageService.calculateMonthlyWageBreakdown(
       contract.hourly_wage,
       workDaysPerWeek,
       dailyWorkHours
@@ -120,7 +155,7 @@ export default function WorkerContractView() {
 
   const handleDownloadPDF = async () => {
     if (!contract) return;
-    
+
     setIsDownloadingPDF(true);
     try {
       await generateContractPDF(getPDFData(), getPDFFilename());
@@ -158,7 +193,7 @@ export default function WorkerContractView() {
 
   const handleSign = async (signatureData: string) => {
     if (!contract?.id || !user?.id) return;
-    
+
     setSigning(true);
     try {
       await signContractAsWorker(contract.id, signatureData, user.id);
@@ -200,11 +235,10 @@ export default function WorkerContractView() {
   const HelpButton = ({ term, context }: { term: string; context: string }) => (
     <button
       onClick={() => handleHelpClick(term, context)}
-      className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
-        helpTerm === term 
-          ? 'bg-primary text-primary-foreground' 
-          : 'bg-primary/10 text-primary hover:bg-primary/20'
-      }`}
+      className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${helpTerm === term
+        ? 'bg-primary text-primary-foreground'
+        : 'bg-primary/10 text-primary hover:bg-primary/20'
+        }`}
     >
       {helpTerm === term ? (
         <X className="w-3 h-3" />
@@ -366,7 +400,7 @@ export default function WorkerContractView() {
                 <p className="text-body-lg font-semibold text-foreground">
                   {contract.hourly_wage.toLocaleString()}원
                 </p>
-                
+
                 {/* 주휴수당 계산 표시 */}
                 {wageBreakdown && (
                   <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 space-y-2">
@@ -433,11 +467,10 @@ export default function WorkerContractView() {
             <div className="p-4 rounded-2xl bg-muted/50 border border-border">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    contract.employer_signature 
-                      ? 'bg-green-100 dark:bg-green-900/30' 
-                      : 'bg-muted'
-                  }`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${contract.employer_signature
+                    ? 'bg-green-100 dark:bg-green-900/30'
+                    : 'bg-muted'
+                    }`}>
                     {contract.employer_signature ? (
                       <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
                     ) : (
@@ -452,11 +485,10 @@ export default function WorkerContractView() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    contract.worker_signature 
-                      ? 'bg-green-100 dark:bg-green-900/30' 
-                      : 'bg-muted'
-                  }`}>
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${contract.worker_signature
+                    ? 'bg-green-100 dark:bg-green-900/30'
+                    : 'bg-muted'
+                    }`}>
                     {contract.worker_signature ? (
                       <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
                     ) : (

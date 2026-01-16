@@ -32,6 +32,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Support from "./pages/Support";
+import PaymentSuccess from "./pages/payment/Success";
+import PaymentFail from "./pages/payment/Fail";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -50,22 +52,22 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/select-role" element={<SelectRole />} />
-              
-{/* Employer Routes */}
+
+              {/* Employer Routes */}
               <Route path="/employer" element={<EmployerDashboard />} />
               <Route path="/employer/create" element={<CreateContract />} />
               <Route path="/employer/preview/:id" element={<ContractPreview />} />
               <Route path="/employer/chat" element={<EmployerChat />} />
               <Route path="/employer/contract/:id" element={<ContractPreview />} />
-              
-{/* Worker Routes */}
+
+              {/* Worker Routes */}
               <Route path="/worker" element={<WorkerDashboard />} />
               <Route path="/worker/onboarding" element={<WorkerOnboarding />} />
               <Route path="/worker/chat" element={<WorkerChat />} />
               <Route path="/worker/contract/:id" element={<WorkerContractView />} />
               <Route path="/worker/career" element={<WorkerCareer />} />
               <Route path="/worker/contract/:id" element={<WorkerContractView />} />
-              
+
               {/* Common Routes */}
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/legal-review-pricing" element={<LegalReviewPricing />} />
@@ -75,11 +77,13 @@ const App = () => (
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/support" element={<Support />} />
-              
+              <Route path="/payment/success" element={<PaymentSuccess />} />
+              <Route path="/payment/fail" element={<PaymentFail />} />
+
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-            
+
             {/* Floating Support Chat */}
             <SupportChat />
           </div>
