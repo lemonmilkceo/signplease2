@@ -32,7 +32,7 @@ export default function ForgotPassword() {
 
   const handleSubmit = async () => {
     if (!inputValue.trim()) {
-      toast.error("핸드폰번호를 입력해주세요");
+      toast.error("이메일을 입력해주세요");
       return;
     }
 
@@ -158,18 +158,19 @@ export default function ForgotPassword() {
               비밀번호를 잊으셨나요?
             </h2>
             <p className="text-muted-foreground">
-              가입하신 핸드폰번호를 입력하시면<br />
+              가입하신 이메일 주소를 입력하시면<br />
               비밀번호 재설정 링크를 보내드립니다
             </p>
           </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-2">
-              <Phone className="w-4 h-4 text-muted-foreground" />
-              핸드폰번호
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              이메일
             </Label>
             <Input
-              placeholder="010-1234-5678"
+              type="email"
+              placeholder="example@email.com"
               value={inputValue}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}

@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Phone, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { SocialLogin } from "@/components/SocialLogin";
 import { popRedirectPath } from "@/lib/deepLink";
 
@@ -21,7 +21,7 @@ export default function Login() {
     return localStorage.getItem(REMEMBER_ME_KEY) === "true";
   });
   const [formData, setFormData] = useState({
-    phone: "",
+    email: "",
     password: "",
   });
 
@@ -41,8 +41,8 @@ export default function Login() {
   };
 
   const validateForm = () => {
-    if (!formData.phone.trim()) {
-      toast.error("핸드폰번호를 입력해주세요");
+    if (!formData.email.trim()) {
+      toast.error("이메일을 입력해주세요");
       return false;
     }
     if (!formData.password) {
@@ -57,10 +57,8 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      const phoneNumber = formData.phone.replace(/\D/g, "");
-
       const { data, error } = await supabase.auth.signInWithPassword({
-        phone: phoneNumber,
+        email: formData.email.trim(),
         password: formData.password,
       });
 
@@ -142,19 +140,20 @@ export default function Login() {
               다시 만나서 반가워요!
             </h2>
             <p className="text-muted-foreground">
-              핸드폰 번호로 로그인해주세요
+              이메일 주소로 로그인해주세요
             </p>
           </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-2">
-              <Phone className="w-4 h-4 text-muted-foreground" />
-              핸드폰번호
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              이메일
             </Label>
             <Input
-              placeholder="010-1234-5678"
-              value={formData.phone}
-              onChange={(e) => handlePhoneChange(e.target.value)}
+              type="email"
+              placeholder="example@email.com"
+              value={formData.email}
+              onChange={(e) => handleChange("email", e.target.value)}
               onKeyDown={handleKeyDown}
               className="h-12"
             />

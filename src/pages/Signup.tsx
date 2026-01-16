@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, User, Calendar, Phone } from "lucide-react";
+import { ArrowLeft, User, Calendar, Phone, Mail } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SocialLogin } from "@/components/SocialLogin";
 import { popRedirectPath } from "@/lib/deepLink";
@@ -19,6 +19,7 @@ export default function Signup() {
     gender: "",
     birthDate: "",
     phone: "",
+    email: "",
     password: "",
     confirmPassword: "",
   });
@@ -48,8 +49,8 @@ export default function Signup() {
       toast.error("성별을 선택해주세요");
       return false;
     }
-    if (!formData.birthDate) {
-      toast.error("생년월일을 입력해주세요");
+    if (!formData.email.trim()) {
+      toast.error("이메일을 입력해주세요");
       return false;
     }
     if (!formData.phone || formData.phone.replace(/\D/g, "").length < 10) {
@@ -72,9 +73,9 @@ export default function Signup() {
 
     setIsLoading(true);
     try {
-      // Sign up with Supabase Auth using phone
+      // Sign up with Supabase Auth using email
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        phone: formData.phone.replace(/\D/g, ""),
+        email: formData.email.trim(),
         password: formData.password,
         options: {
           data: {
@@ -102,7 +103,7 @@ export default function Signup() {
             gender: formData.gender,
             birth_date: formData.birthDate,
             phone: formData.phone,
-            email: null,
+            email: formData.email.trim(),
           })
           .eq("user_id", authData.user.id);
 
@@ -198,6 +199,21 @@ export default function Signup() {
               onChange={(e) => handleChange("birthDate", e.target.value)}
               className="h-12"
               max={new Date().toISOString().split("T")[0]}
+            />
+          </div>
+
+          {/* Email */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              이메일 <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              type="email"
+              placeholder="example@email.com"
+              value={formData.email}
+              onChange={(e) => handleChange("email", e.target.value)}
+              className="h-12"
             />
           </div>
 
