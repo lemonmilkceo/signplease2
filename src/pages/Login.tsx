@@ -70,7 +70,7 @@ export default function Login() {
       if (!isEmail) {
         // Convert phone to email format
         const phoneNumbers = input.replace(/\D/g, "");
-        email = `${phoneNumbers}@test.signplease.kr`;
+        email = `${phoneNumbers}@signplease.io`;
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -82,7 +82,7 @@ export default function Login() {
         if (error.message.includes("Invalid login credentials")) {
           toast.error("로그인 정보가 올바르지 않습니다");
         } else {
-          toast.error(`로그인에 실패했습니다 (${email}): ${error.message}`);
+          toast.error(`로그인에 실패했습니다: ${error.message}`);
         }
         return;
       }

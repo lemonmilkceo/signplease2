@@ -74,7 +74,7 @@ export default function Signup() {
     setIsLoading(true);
     try {
       // Use phone as email if email is not provided
-      const authEmail = formData.email.trim() || `${formData.phone.replace(/\D/g, "")}@test.signplease.kr`;
+      const authEmail = formData.email.trim() || `${formData.phone.replace(/\D/g, "")}@signplease.io`;
 
       // Sign up with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -92,7 +92,7 @@ export default function Signup() {
         if (authError.message.includes("already registered")) {
           toast.error("이미 가입된 사용자입니다");
         } else {
-          toast.error(`회원가입에 실패했습니다 (${authEmail}): ${authError.message}`);
+          toast.error(`회원가입에 실패했습니다: ${authError.message}`);
         }
         return;
       }
